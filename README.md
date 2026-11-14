@@ -39,7 +39,8 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Profil, pesées quotidiennes, objectifs calories/macros | ✅ MVP |
 | Tendance de poids lissée, vitesse sur 14 jours | ✅ MVP |
 | Correction adaptative des calories | ✅ MVP |
-| Tests automatisés (26 tests Java) et CI | ✅ |
+| Tests automatisés (Java) et CI | ✅ |
+| Dates locales (fuseau de l'utilisateur) et nouveau design sombre à 4 onglets | 🚧 en cours (PR `feat/foundations`) |
 | Journal alimentaire et base d'aliments | 🔜 prévu |
 | **Replanification face aux imprévus** (repas à l'extérieur, écart, voyage) | 🔜 v2, voir ci-dessous |
 | Notifications, graphique de progression | 🔜 prévu |

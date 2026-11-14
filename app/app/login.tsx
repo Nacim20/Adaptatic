@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { Button, Card, Field, styles } from '../lib/theme';
+import { Button, Card, Field, Screen, Text, styles } from '../lib/theme';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
@@ -27,22 +26,20 @@ export default function Login() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Adaptatic</Text>
-        <Text style={styles.subtitle}>Une nutrition qui s'adapte à ta progression réelle.</Text>
-        <Card>
-          <Field label="E-mail" value={email} onChangeText={setEmail} autoCapitalize="none"
-            keyboardType="email-address" autoComplete="email" />
-          <Field label="Mot de passe (8 caractères min.)" value={password} onChangeText={setPassword}
-            secureTextEntry autoComplete="password" />
-          {message && <Text style={styles.error}>{message}</Text>}
-          <Button title={mode === 'in' ? 'Se connecter' : 'Créer mon compte'} onPress={submit}
-            disabled={busy || !email || password.length < 8} />
-          <Button secondary title={mode === 'in' ? "Pas de compte ? S'inscrire" : 'Déjà inscrit ? Se connecter'}
-            onPress={() => setMode(mode === 'in' ? 'up' : 'in')} />
-        </Card>
-      </View>
-    </ScrollView>
+    <Screen>
+      <Text style={styles.title}>Adaptatic</Text>
+      <Text style={styles.subtitle}>Une nutrition qui s'adapte à ta progression réelle.</Text>
+      <Card>
+        <Field label="E-mail" value={email} onChangeText={setEmail} autoCapitalize="none"
+          keyboardType="email-address" autoComplete="email" />
+        <Field label="Mot de passe (8 caractères min.)" value={password} onChangeText={setPassword}
+          secureTextEntry autoComplete="password" />
+        {message && <Text style={styles.error}>{message}</Text>}
+        <Button title={mode === 'in' ? 'Se connecter' : 'Créer mon compte'} onPress={submit}
+          disabled={busy || !email || password.length < 8} />
+        <Button secondary title={mode === 'in' ? "Pas de compte ? S'inscrire" : 'Déjà inscrit ? Se connecter'}
+          onPress={() => setMode(mode === 'in' ? 'up' : 'in')} />
+      </Card>
+    </Screen>
   );
 }

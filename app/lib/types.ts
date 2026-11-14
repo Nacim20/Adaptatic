@@ -10,6 +10,7 @@ export interface Profile {
   activity_level: ActivityLevel;
   goal: Goal;
   weekly_rate_pct: number;
+  timezone: string;
 }
 
 export interface WeightLog {
