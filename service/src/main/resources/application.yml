@@ -1,0 +1,11 @@
+server:
+  port: ${PORT:8080}
+
+adaptatic:
+  supabase-url: ${SUPABASE_URL:http://localhost:54321}
+  supabase-service-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  webhook-secret: ${WEBHOOK_SECRET:}
+
+spring:
+  jackson:
+    default-property-inclusion: non_null
