@@ -24,8 +24,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="imprevu" options={{ title: 'Imprévu', tabBarIcon: icon('flash-outline') }} />
       <Tabs.Screen name="programme" options={{ title: 'Programme', tabBarIcon: icon('calendar-outline') }} />
       <Tabs.Screen name="nutrition" options={{ title: 'Nutrition', tabBarIcon: icon('restaurant-outline') }} />
-      {/* Profil : ouvert par l'avatar, absent de la barre d'onglets. */}
-      <Tabs.Screen name="profil" options={{ href: null }} />
     </Tabs>
   );
 }
