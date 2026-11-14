@@ -3,7 +3,10 @@ package fr.adaptatic.supabase;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.adaptatic.config.AppProperties;
 import fr.adaptatic.engine.*;
+import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.*;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -41,12 +44,22 @@ public class SupabaseTargetsStore implements TargetsStore {
                 r.get("height_cm").asDouble(),
                 ActivityLevel.valueOf(r.get("activity_level").asText().toUpperCase()),
                 Goal.valueOf(r.get("goal").asText().toUpperCase()),
-                r.get("weekly_rate_pct").asDouble()));
+                r.get("weekly_rate_pct").asDouble(),
+                parseZone(r.get("timezone"))));
+    }
+
+    /** Fuseau du profil ; UTC si absent ou invalide (on ne bloque jamais un recalcul pour ça). */
+    static ZoneId parseZone(JsonNode node) {
+        if (node == null || node.isNull()) return ZoneOffset.UTC;
+        try {
+            return ZoneId.of(node.asText());
+        } catch (DateTimeException e) {
+            return ZoneOffset.UTC;
+        }
     }
 
     @Override
-    public List<WeightEntry> recentWeights(UUID userId) {
-        LocalDate since = LocalDate.now().minusDays(60);
+    public List<WeightEntry> recentWeights(UUID userId, LocalDate since) {
         JsonNode rows = get("/weight_logs?user_id=eq." + userId + "&logged_on=gte." + since
                 + "&select=logged_on,weight_kg&order=logged_on.asc");
         List<WeightEntry> out = new ArrayList<>();
