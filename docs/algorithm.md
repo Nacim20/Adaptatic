@@ -47,6 +47,10 @@ L'ajustement est stocké (`adaptive_offset_kcal`) et réinitialisé si l'utilisa
 2. Lipides : max(25 % des calories, 0,6 g/kg).
 3. Glucides : le reste des calories.
 
+## 6. Quel jour est « aujourd'hui » ?
+
+Toutes les dates (pesées, période d'observation, délai entre ajustements) sont des **dates locales de l'utilisateur**. L'app envoie la date locale de l'appareil et mémorise son fuseau IANA (`profiles.timezone`) ; le service l'utilise pour calculer « aujourd'hui ». Sans cela, un utilisateur en Asie ou tard le soir en Europe verrait ses pesées rangées au mauvais jour (date UTC). Fuseau absent ou invalide : UTC.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).

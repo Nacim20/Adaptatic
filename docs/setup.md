@@ -3,8 +3,8 @@
 ## 1. Supabase
 
 1. Crée un projet sur [supabase.com](https://supabase.com).
-2. Dans **SQL Editor**, exécute `supabase/migrations/20261114000000_init.sql`.
-3. Récupère dans **Project Settings → API** : l'URL, la clé `anon` (publique) et la clé `service_role` (**secrète**).
+2. Dans **SQL Editor**, exécute **dans l'ordre** les fichiers de `supabase/migrations/` (`20261114000000_init.sql`, puis `20261114120000_profile_timezone.sql`, etc.).
+3. Récupère dans **Project Settings → API Keys** : l'URL, la clé **publishable** (`sb_publishable_…`, publique) et la clé **secret** (`sb_secret_…`, **à ne jamais exposer**). Les anciens projets affichent encore `anon` / `service_role` : mêmes rôles.
 4. Choisis un secret aléatoire (`openssl rand -hex 32`) et renseigne-le avec l'URL publique du service dans `private.app_config` : voir `supabase/config.example.sql` (à exécuter avec tes vraies valeurs, **sans le commiter**).
 5. Pour tester sans e-mail de confirmation, désactive la confirmation dans **Authentication → Providers → Email** (à remettre en production).
 
@@ -15,7 +15,7 @@ Il doit être joignable depuis Internet (Supabase l'appelle en HTTPS). Pendant l
 ```bash
 cd service
 export SUPABASE_URL=https://<projet>.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=<service_role>
+export SUPABASE_SERVICE_ROLE_KEY=<clé secret (sb_secret_…)>   # le nom de variable est historique
 export WEBHOOK_SECRET=<même secret que app_config>
 mvn spring-boot:run
 ```
@@ -28,12 +28,13 @@ Vérification : `curl http://localhost:8080/health` → `{"status":"ok"}`.
 
 ```bash
 cd app
-cp .env.example .env     # URL + clé anon
+cp .env.example .env     # URL + clé publishable (variable EXPO_PUBLIC_SUPABASE_ANON_KEY, nom historique)
 npm install
 npm run web              # ou : npm start, puis scanner le QR code avec Expo Go
 ```
 
 ## Sécurité
 
-- Ne mets **jamais** la clé `service_role` dans l'app ni dans le dépôt.
-- La clé `anon` est publique par conception : c'est la RLS qui protège les données.
+- Ne mets **jamais** la clé secret (ou `service_role`) dans l'app ni dans le dépôt.
+- La clé publishable (ou `anon`) est publique par conception : c'est la RLS qui protège les données.
+- Toute nouvelle table doit avoir la RLS activée et ses politiques dans la même migration.
