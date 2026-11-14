@@ -58,6 +58,7 @@ create table public.nutrition_targets (
   fat_g                integer      not null,
   -- État de la correction adaptative (voir docs/algorithm.md)
   adaptive_offset_kcal integer      not null default 0,
+  last_adjusted_on     date,
   tracking_since       date         not null default current_date,
   goal                 public.goal  not null,
   weekly_rate_pct      numeric(3,2) not null,
