@@ -5,6 +5,7 @@ import fr.adaptatic.engine.Goal;
 import fr.adaptatic.engine.Profile;
 import fr.adaptatic.engine.Targets;
 import fr.adaptatic.engine.WeightEntry;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,8 +15,8 @@ public interface TargetsStore {
 
     Optional<Profile> findProfile(UUID userId);
 
-    /** Pesées les plus récentes (60 jours max), ordre indifférent. */
-    List<WeightEntry> recentWeights(UUID userId);
+    /** Pesées depuis la date donnée incluse (date locale de l'utilisateur), ordre indifférent. */
+    List<WeightEntry> recentWeights(UUID userId, LocalDate since);
 
     /** État adaptatif précédent et objectif/rythme avec lesquels il a été calculé. */
     Optional<StoredState> findState(UUID userId);

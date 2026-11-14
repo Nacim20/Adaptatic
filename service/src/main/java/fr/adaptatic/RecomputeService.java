@@ -17,19 +17,27 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RecomputeService {
 
+    /** Historique de pesées lu pour le calcul. */
+    static final int WEIGHT_HISTORY_DAYS = 60;
+
     private final TargetsStore store;
     private final Clock clock;
 
     /** @return true si des objectifs ont été écrits (false : profil ou pesée manquants). */
     public boolean recompute(UUID userId) {
-        LocalDate today = LocalDate.now(clock);
         Optional<Profile> profile = store.findProfile(userId);
-        List<WeightEntry> weights = store.recentWeights(userId);
-        if (profile.isEmpty() || weights.isEmpty()) {
-            log.info("Recalcul ignoré pour {} (profil ou pesée absents)", userId);
+        if (profile.isEmpty()) {
+            log.info("Recalcul ignoré pour {} (profil absent)", userId);
             return false;
         }
         Profile p = profile.get();
+        // « Aujourd'hui » = la date locale de l'utilisateur, pas celle du serveur (UTC).
+        LocalDate today = LocalDate.now(clock.withZone(p.timezone()));
+        List<WeightEntry> weights = store.recentWeights(userId, today.minusDays(WEIGHT_HISTORY_DAYS));
+        if (weights.isEmpty()) {
+            log.info("Recalcul ignoré pour {} (pesée absente)", userId);
+            return false;
+        }
 
         // Si l'utilisateur change d'objectif ou de rythme, l'ancienne correction n'a plus de sens.
         AdaptiveState state = store.findState(userId)
