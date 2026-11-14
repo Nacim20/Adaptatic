@@ -2,14 +2,13 @@ package fr.adaptatic.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.adaptatic.RecomputeService;
-import fr.adaptatic.config.AppProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +16,18 @@ import org.springframework.web.bind.annotation.*;
 /** Reçoit les webhooks pg_net émis par les triggers Supabase (voir migration init). */
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 public class WebhookController {
 
     private static final Set<String> TABLES = Set.of("weight_logs", "profiles");
 
     private final RecomputeService recompute;
-    private final AppProperties props;
+    private final String expectedSecret;
+
+    public WebhookController(RecomputeService recompute,
+                             @Value("${adaptatic.webhook-secret:}") String expectedSecret) {
+        this.recompute = recompute;
+        this.expectedSecret = expectedSecret;
+    }
 
     @GetMapping("/health")
     public Map<String, String> health() {
@@ -55,7 +59,7 @@ public class WebhookController {
 
     /** Comparaison en temps constant pour ne pas fuiter le secret par le temps de réponse. */
     boolean secretMatches(String provided) {
-        String expected = props.webhookSecret();
+        String expected = expectedSecret;
         if (provided == null || expected == null || expected.isBlank()) return false;
         return MessageDigest.isEqual(provided.getBytes(StandardCharsets.UTF_8),
                 expected.getBytes(StandardCharsets.UTF_8));
