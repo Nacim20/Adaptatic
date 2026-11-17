@@ -60,6 +60,18 @@ Toutes les dates (pesées, période d'observation, délai entre ajustements) son
 - **Jour au-dessus de la cible** : l'app l'indique sans alerte ni couleur d'avertissement. Le moteur adaptatif travaille sur la pente du poids sur 14 jours ; un écart isolé est lissé et ne déclenche aucun ajustement (zone morte, §4).
 - **Repas proposé à l'ajout rapide** : heuristique d'ergonomie fondée sur l'heure locale (avant 11 h petit-déjeuner, 11-15 h déjeuner, 15-18 h collation, sinon dîner), sans valeur nutritionnelle.
 
+## 8. Scan de code-barres (Open Food Facts)
+
+Un code scanné est d'abord cherché dans le catalogue partagé (cache par code-barres), sinon dans l'API Open Food Facts (OFF) via le service (le navigateur ne peut pas fixer le User-Agent exigé par OFF ; le service applique aussi une limite de 20 requêtes/min par utilisateur). Le produit est ensuite enregistré dans le catalogue partagé.
+
+Règles de conversion (`OffProductMapper`) :
+- Les valeurs OFF sont par 100 g. Énergie : `energy-kcal_100g`, sinon kJ ÷ 4,184.
+- Protéines, glucides et lipides sont obligatoires ; sinon le produit est refusé (« incomplet »).
+- Valeurs refusées comme incohérentes : kcal hors 0–900, macros hors 0–100 g, somme des macros > 101 g.
+- Portion : utilisée seulement si 0 < quantité ≤ 5000 ; on suppose 1 ml ≈ 1 g (approximation pour les boissons).
+
+Limites : OFF est une base collaborative, les valeurs peuvent être fausses même si cohérentes ; l'app le rappelle et cite la licence ODbL. Tous les codes n'existent pas dans OFF. La clé de contrôle GS1 est vérifiée côté app avant tout appel. Non vérifié en conditions réelles depuis l'environnement de développement (testé avec des simulations) : le premier scan réel est le vrai test.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).

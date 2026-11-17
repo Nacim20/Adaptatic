@@ -104,6 +104,11 @@ export default function AddFood() {
                 selected={g === selected.serving_g} onPress={() => setGrams(String(selected.serving_g))} />
             </View>
           )}
+          {selected.source === 'openfoodfacts' && (
+            <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>
+              Données : Open Food Facts (ODbL). Base collaborative : vérifie les valeurs avec l'emballage.
+            </Text>
+          )}
           {!gramsOk && <Text style={styles.error}>Quantité entre {MIN_G} et {MAX_G} g</Text>}
           {preview && (
             <Text style={{ marginBottom: 10 }}>
@@ -116,6 +121,8 @@ export default function AddFood() {
         </Card>
       ) : (
         <>
+          <Button title="Scanner un code-barres" onPress={() => router.push('/scan')} />
+          <View style={{ height: 12 }} />
           <Field label="Rechercher (2 lettres minimum)" value={query} onChangeText={setQuery} autoCapitalize="none" />
           {query.trim().length < 2 && list.length > 0 && <Text style={{ color: colors.muted, marginBottom: 6 }}>Récents</Text>}
           {query.trim().length >= 2 && results.length === 0 && !error && (
