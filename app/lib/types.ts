@@ -11,6 +11,7 @@ export interface Profile {
   goal: Goal;
   weekly_rate_pct: number;
   timezone: string;
+  water_target_ml: number;
 }
 
 export interface WeightLog {
@@ -46,3 +47,51 @@ export const GOAL_LABELS: Record<Goal, string> = {
   maintain: 'Maintenir',
   bulk: 'Prendre du muscle',
 };
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+export const MEAL_LABELS: Record<MealType, string> = {
+  breakfast: 'Petit-déjeuner',
+  lunch: 'Déjeuner',
+  dinner: 'Dîner',
+  snack: 'Collation',
+};
+
+/** Aliment, valeurs pour 100 g. owner_id null = catalogue partagé. */
+export interface Food {
+  id: string;
+  owner_id: string | null;
+  name: string;
+  brand: string | null;
+  barcode: string | null;
+  kcal_100: number;
+  protein_100: number;
+  carbs_100: number;
+  fat_100: number;
+  serving_g: number | null;
+  serving_label: string | null;
+  source: 'user' | 'openfoodfacts' | 'ciqual';
+}
+
+/** Entrée de repas : copie nutritionnelle calculée par la base. */
+export interface MealEntry {
+  id: string;
+  user_id: string;
+  eaten_on: string;
+  meal: MealType;
+  food_id: string | null;
+  food_name: string;
+  quantity_g: number;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  created_at: string;
+}
+
+export interface WaterLog {
+  id: string;
+  logged_on: string;
+  amount_ml: number;
+  created_at: string;
+}
