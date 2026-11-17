@@ -20,7 +20,9 @@ export WEBHOOK_SECRET=<même secret que app_config>
 mvn spring-boot:run
 ```
 
-Ou avec Docker : `docker build -t adaptatic-service service` puis `docker run -p 8080:8080 -e SUPABASE_URL=... -e SUPABASE_SERVICE_ROLE_KEY=... -e WEBHOOK_SECRET=... adaptatic-service`.
+Ou avec Docker : `docker build -t adaptatic-service service` puis `docker run -p 8080:8080 -e SUPABASE_URL=... -e SUPABASE_SERVICE_ROLE_KEY=... -e WEBHOOK_SECRET=... -e SUPABASE_PUBLISHABLE_KEY=... adaptatic-service`.
+
+**Scan de code-barres** : le service a besoin de `SUPABASE_PUBLISHABLE_KEY` (valider le jeton de l'utilisateur). Côté app, mets l'URL publique du service (ton tunnel) dans `EXPO_PUBLIC_SERVICE_URL` (`app/.env`). Le scan ne marche que si ton PC, Docker et le tunnel tournent.
 
 Vérification : `curl http://localhost:8080/health` → `{"status":"ok"}`.
 
