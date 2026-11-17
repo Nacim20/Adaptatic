@@ -1,4 +1,4 @@
-import { Redirect, Slot, usePathname } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { isConfigured } from '../lib/supabase';
@@ -20,7 +20,8 @@ function Guard() {
   if (loading) return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.bg }} color={colors.primary} />;
   if (!session && path !== '/login') return <Redirect href="/login" />;
   if (session && path === '/login') return <Redirect href="/" />;
-  return <Slot />;
+  // Pile de navigation : les écrans hors onglets (profil, ajout d'aliment...) s'empilent et « Retour » fonctionne.
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />;
 }
 
 export default function RootLayout() {
