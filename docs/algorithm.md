@@ -51,8 +51,18 @@ L'ajustement est stocké (`adaptive_offset_kcal`) et réinitialisé si l'utilisa
 
 Toutes les dates (pesées, période d'observation, délai entre ajustements) sont des **dates locales de l'utilisateur**. L'app envoie la date locale de l'appareil et mémorise son fuseau IANA (`profiles.timezone`) ; le service l'utilise pour calculer « aujourd'hui ». Sans cela, un utilisateur en Asie ou tard le soir en Europe verrait ses pesées rangées au mauvais jour (date UTC). Fuseau absent ou invalide : UTC.
 
+## 7. Journal alimentaire
+
+- **Aliments pour 100 g** : toutes les valeurs sont stockées pour 100 g, la quantité est en grammes. Une « portion » n'est qu'un raccourci vers un nombre de grammes.
+- **Copie à l'enregistrement** : chaque entrée de repas garde le nom et les kcal/macros calculés au moment de l'ajout (`kcal = kcal_100 × grammes / 100`, arrondi à 0,1). Modifier ou supprimer un aliment ne réécrit donc jamais l'historique. Le calcul est fait **par la base** (trigger), pas par le client : une valeur envoyée par l'app est ignorée.
+- **Cohérence des données saisies** : pour 100 g, protéines + glucides + lipides ≤ 101 g (tolérance d'arrondi des étiquettes), kcal entre 0 et 900. Aucune valeur n'est inventée : en v1 l'utilisateur recopie son étiquette (le catalogue partagé, Open Food Facts et Ciqual, arrive avec le scan de code-barres).
+- **Eau** : objectif par défaut 2 000 ml de boissons, modifiable. Repère : l'EFSA (2010) juge adéquats 2,0 L (femmes) et 2,5 L (hommes) d'eau **totale** par jour, aliments compris ; c'est une valeur de population, pas une prescription individuelle.
+- **Jour au-dessus de la cible** : l'app l'indique sans alerte ni couleur d'avertissement. Le moteur adaptatif travaille sur la pente du poids sur 14 jours ; un écart isolé est lissé et ne déclenche aucun ajustement (zone morte, §4).
+- **Repas proposé à l'ajout rapide** : heuristique d'ergonomie fondée sur l'heure locale (avant 11 h petit-déjeuner, 11-15 h déjeuner, 15-18 h collation, sinon dîner), sans valeur nutritionnelle.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).
 - Les équations de prédiction ont une erreur individuelle de l'ordre de ±10 % : d'où la correction par les données.
 - Pas de gestion de la rétention d'eau cyclique, de la grossesse ou des pathologies.
+- Les valeurs nutritionnelles saisies à la main valent ce que vaut l'étiquette recopiée ; les étiquettes ont elles-mêmes une tolérance réglementaire.
