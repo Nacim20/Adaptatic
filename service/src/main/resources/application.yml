@@ -5,6 +5,10 @@ adaptatic:
   supabase-url: ${SUPABASE_URL:http://localhost:54321}
   supabase-service-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   webhook-secret: ${WEBHOOK_SECRET:}
+  supabase-publishable-key: ${SUPABASE_PUBLISHABLE_KEY:}
+  off-base-url: ${OFF_BASE_URL:https://world.openfoodfacts.org}
+  off-user-agent: ${OFF_USER_AGENT:Adaptatic/0.1 (https://github.com/Nacim20/Adaptatic)}
+  cors-origins: ${CORS_ORIGINS:*}
 
 spring:
   jackson:
