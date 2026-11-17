@@ -25,7 +25,15 @@
     },
     "scheme": "adaptatic",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Adaptatic utilise la caméra pour scanner les codes-barres des aliments.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ]
   }
 }
