@@ -42,7 +42,7 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Tests automatisés (Java) et CI | ✅ |
 | Dates locales (fuseau de l'utilisateur) et nouveau design sombre à 4 onglets | 🚧 en cours (PR `feat/foundations`) |
 | Journal alimentaire : aliments par 100 g, repas, macros, eau, ajout rapide | 🚧 en cours (PR `feat/food-journal`) |
-| Scan de code-barres (Open Food Facts) | ✅ fait (à tester en réel) |
+| Scan de code-barres (Open Food Facts) | ✅ fait, testé en réel (saisie manuelle, web) — scan caméra non testé sur appareil |
 | Recettes, repas favoris | 🔜 prévu |
 | **Replanification face aux imprévus** (repas à l'extérieur, écart, voyage) | 🔜 v2, voir ci-dessous |
 | Notifications, graphique de progression | 🔜 prévu |
