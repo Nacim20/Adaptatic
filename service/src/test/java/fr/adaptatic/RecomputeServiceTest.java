@@ -98,4 +98,55 @@ class RecomputeServiceTest {
 
         assertEquals(TODAY, s.saved.state().trackingSince());
     }
+
+    // ----------------------------------------------------------- forecast()
+
+    @Test
+    void forecastIsEmptyWhenNoProfile() {
+        FakeStore s = new FakeStore();
+        s.weights = List.of(new WeightEntry(TODAY, 80));
+        assertTrue(new RecomputeService(s, CLOCK).forecast(UUID.randomUUID(), 7).isEmpty());
+    }
+
+    @Test
+    void forecastIsEmptyWhenNoWeight() {
+        FakeStore s = new FakeStore();
+        s.profile = Optional.of(cut());
+        assertTrue(new RecomputeService(s, CLOCK).forecast(UUID.randomUUID(), 7).isEmpty());
+    }
+
+    @Test
+    void forecastReturnsOneEntryPerDayStartingToday() {
+        FakeStore s = new FakeStore();
+        s.profile = Optional.of(cut());
+        s.weights = List.of(new WeightEntry(TODAY, 80));
+
+        List<RecomputeService.ForecastDay> days = new RecomputeService(s, CLOCK).forecast(UUID.randomUUID(), 5).orElseThrow();
+
+        assertEquals(5, days.size());
+        assertEquals(TODAY, days.get(0).date());
+        assertEquals(TODAY.plusDays(4), days.get(4).date());
+    }
+
+    @Test
+    void forecastReflectsTheEventOffsetDecayingDayByDay() {
+        FakeStore s = new FakeStore();
+        s.profile = Optional.of(cut());
+        s.weights = List.of(new WeightEntry(TODAY, 80));
+        s.events = List.of(new EventSpread.CalorieEvent(TODAY.minusDays(3), 900)); // -> 3 jours, 300 kcal/j, se termine aujourd'hui
+
+        List<RecomputeService.ForecastDay> days = new RecomputeService(s, CLOCK).forecast(UUID.randomUUID(), 5).orElseThrow();
+
+        assertEquals(-300, days.get(0).targets().eventOffsetKcal()); // aujourd'hui : dernier jour actif
+        assertEquals(0, days.get(1).targets().eventOffsetKcal());    // fenêtre terminée
+    }
+
+    @Test
+    void forecastNeverWritesToTheStore() {
+        FakeStore s = new FakeStore();
+        s.profile = Optional.of(cut());
+        s.weights = List.of(new WeightEntry(TODAY, 80));
+        new RecomputeService(s, CLOCK).forecast(UUID.randomUUID(), 7);
+        assertNull(s.saved);
+    }
 }
