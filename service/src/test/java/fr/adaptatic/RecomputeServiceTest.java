@@ -18,12 +18,14 @@ class RecomputeServiceTest {
         Optional<Profile> profile = Optional.empty();
         List<WeightEntry> weights = List.of();
         Optional<StoredState> state = Optional.empty();
+        List<EventSpread.CalorieEvent> events = List.of();
         Targets saved;
         LocalDate lastSince;
 
         public Optional<Profile> findProfile(UUID u) { return profile; }
         public List<WeightEntry> recentWeights(UUID u, LocalDate since) { lastSince = since; return weights; }
         public Optional<StoredState> findState(UUID u) { return state; }
+        public List<EventSpread.CalorieEvent> recentEvents(UUID u, LocalDate since) { return events; }
         public void saveTargets(UUID u, Targets t, Goal g, double pct) { saved = t; }
     }
 

@@ -1,6 +1,7 @@
 package fr.adaptatic.supabase;
 
 import fr.adaptatic.engine.AdaptiveState;
+import fr.adaptatic.engine.EventSpread.CalorieEvent;
 import fr.adaptatic.engine.Goal;
 import fr.adaptatic.engine.Profile;
 import fr.adaptatic.engine.Targets;
@@ -20,6 +21,9 @@ public interface TargetsStore {
 
     /** État adaptatif précédent et objectif/rythme avec lesquels il a été calculé. */
     Optional<StoredState> findState(UUID userId);
+
+    /** Imprévus pertinents depuis la date donnée incluse (date locale de l'utilisateur). */
+    List<CalorieEvent> recentEvents(UUID userId, LocalDate since);
 
     void saveTargets(UUID userId, Targets targets, Goal goal, double weeklyRatePct);
 

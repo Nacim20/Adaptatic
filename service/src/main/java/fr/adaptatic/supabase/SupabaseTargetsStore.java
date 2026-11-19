@@ -3,6 +3,7 @@ package fr.adaptatic.supabase;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.adaptatic.config.AppProperties;
 import fr.adaptatic.engine.*;
+import fr.adaptatic.engine.EventSpread.CalorieEvent;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -87,6 +88,19 @@ public class SupabaseTargetsStore implements TargetsStore {
     }
 
     @Override
+    public List<CalorieEvent> recentEvents(UUID userId, LocalDate since) {
+        JsonNode rows = get("/calorie_events?user_id=eq." + userId + "&event_date=gte." + since
+                + "&select=event_date,excess_kcal&order=event_date.asc");
+        List<CalorieEvent> out = new ArrayList<>();
+        if (rows != null) {
+            for (JsonNode r : rows) {
+                out.add(new CalorieEvent(LocalDate.parse(r.get("event_date").asText()), r.get("excess_kcal").asInt()));
+            }
+        }
+        return out;
+    }
+
+    @Override
     public void saveTargets(UUID userId, Targets t, Goal goal, double weeklyRatePct) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("user_id", userId.toString());
@@ -98,6 +112,7 @@ public class SupabaseTargetsStore implements TargetsStore {
         row.put("adaptive_offset_kcal", t.state().offsetKcal());
         row.put("last_adjusted_on", t.state().lastAdjustedOn() == null ? null : t.state().lastAdjustedOn().toString());
         row.put("tracking_since", t.state().trackingSince().toString());
+        row.put("event_offset_kcal", t.eventOffsetKcal());
         row.put("goal", goal.name().toLowerCase());
         row.put("weekly_rate_pct", weeklyRatePct);
         row.put("weight_trend_kg", Math.round(t.trendWeightKg() * 100) / 100.0);

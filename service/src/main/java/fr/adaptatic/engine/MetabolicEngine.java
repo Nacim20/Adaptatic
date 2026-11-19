@@ -2,6 +2,7 @@ package fr.adaptatic.engine;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.OptionalDouble;
 
@@ -48,7 +49,8 @@ public final class MetabolicEngine {
         };
     }
 
-    public static Targets compute(Profile p, List<WeightEntry> entries, AdaptiveState previous, LocalDate today) {
+    public static Targets compute(Profile p, List<WeightEntry> entries, AdaptiveState previous, LocalDate today,
+                                   List<EventSpread.CalorieEvent> events) {
         if (entries.isEmpty()) throw new IllegalArgumentException("Au moins une pesée est requise");
 
         double trend = WeightTrend.ema(entries);
@@ -91,8 +93,22 @@ public final class MetabolicEngine {
             }
         }
 
+        int eventOffset = EventSpread.offsetForDate(events, today);
+        if (eventOffset != 0) {
+            EventSpread.CalorieEvent active = events.stream()
+                    .filter(e -> !today.isBefore(e.eventDate().plusDays(1))
+                            && !today.isAfter(e.eventDate().plusDays(EventSpread.spreadDays(e.excessKcal()))))
+                    .findFirst().orElse(null);
+            if (active != null) {
+                LocalDate end = active.eventDate().plusDays(EventSpread.spreadDays(active.excessKcal()));
+                long remaining = ChronoUnit.DAYS.between(today, end) + 1;
+                note += String.format(" Imprévu du %s (+%d kcal) : objectif réduit de %d kcal/jour, encore %d jour%s.",
+                        active.eventDate(), active.excessKcal(), -eventOffset, remaining, remaining > 1 ? "s" : "");
+            }
+        }
+
         int floor = p.sex() == Sex.MALE ? MIN_KCAL_MALE : MIN_KCAL_FEMALE;
-        int calories = (int) Math.max(floor, Math.round((baseKcal + state.offsetKcal()) / 5.0) * 5);
+        int calories = (int) Math.max(floor, Math.round((baseKcal + state.offsetKcal() + eventOffset) / 5.0) * 5);
 
         // --- Macros : protéines et lipides d'abord, glucides = reste ---
         double proteinPerKg = p.goal() == Goal.CUT ? 2.0 : 1.8;
@@ -101,6 +117,6 @@ public final class MetabolicEngine {
         int carbs = (int) Math.max(0, Math.round((calories - protein * 4.0 - fat * 9.0) / 4.0));
 
         return new Targets((int) Math.round(tdee), calories, protein, carbs, fat, trend,
-                observed.isPresent() ? observed.getAsDouble() : null, state, note);
+                observed.isPresent() ? observed.getAsDouble() : null, state, eventOffset, note);
     }
 }

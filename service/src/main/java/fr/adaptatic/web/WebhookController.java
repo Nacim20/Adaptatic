@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class WebhookController {
 
-    private static final Set<String> TABLES = Set.of("weight_logs", "profiles");
+    private static final Set<String> TABLES = Set.of("weight_logs", "profiles", "calorie_events");
 
     private final RecomputeService recompute;
     private final String expectedSecret;

@@ -1,6 +1,7 @@
 package fr.adaptatic;
 
 import fr.adaptatic.engine.*;
+import fr.adaptatic.engine.EventSpread.CalorieEvent;
 import fr.adaptatic.supabase.TargetsStore;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -38,6 +39,7 @@ public class RecomputeService {
             log.info("Recalcul ignoré pour {} (pesée absente)", userId);
             return false;
         }
+        List<CalorieEvent> events = store.recentEvents(userId, today.minusDays(EventSpread.MAX_SPREAD_DAYS));
 
         // Si l'utilisateur change d'objectif ou de rythme, l'ancienne correction n'a plus de sens.
         AdaptiveState state = store.findState(userId)
@@ -45,7 +47,7 @@ public class RecomputeService {
                 .map(TargetsStore.StoredState::state)
                 .orElseGet(() -> AdaptiveState.fresh(today));
 
-        Targets t = MetabolicEngine.compute(p, weights, state, today);
+        Targets t = MetabolicEngine.compute(p, weights, state, today, events);
         store.saveTargets(userId, t, p.goal(), p.weeklyRatePct());
         log.info("Objectifs mis à jour pour {} : {} kcal (offset {})", userId, t.caloriesKcal(), t.state().offsetKcal());
         return true;
