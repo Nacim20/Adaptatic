@@ -85,6 +85,8 @@ Quand un écart calorique est prévisible (restaurant, voyage, semaine chargée)
 
 Limite connue : la fenêtre « un seul à la fois » côté base est une vérification large (10 jours), pas le calcul exact (qui dépend du montant de chaque écart) — volontairement simple plutôt que de dupliquer la formule du moteur en SQL.
 
+Vérifié en conditions réelles (déclaration, règle "un seul actif", annulation, effet sur `nutrition_targets`, contre le vrai Supabase). Non vérifié : le déclenchement *automatique* par le trigger Supabase (webhook via `pg_net` + tunnel public) — simulé manuellement (appel direct à `/webhooks/supabase`) faute de tunnel configuré sur cette machine.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).
