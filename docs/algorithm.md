@@ -87,6 +87,8 @@ Limite connue : la fenêtre « un seul à la fois » côté base est une vérifi
 
 Vérifié en conditions réelles (déclaration, règle "un seul actif", annulation, effet sur `nutrition_targets`, contre le vrai Supabase). Non vérifié : le déclenchement *automatique* par le trigger Supabase (webhook via `pg_net` + tunnel public) — simulé manuellement (appel direct à `/webhooks/supabase`) faute de tunnel configuré sur cette machine.
 
+**Vue "Programme"** : `GET /api/targets/forecast` (authentifié par le jeton de l'utilisateur, comme le scan de code-barres) rejoue `MetabolicEngine.compute` une fois par jour sur la fenêtre demandée (7 jours par défaut, 14 au plus), avec les **mêmes pesées et le même état adaptatif qu'aujourd'hui** — il n'y a pas de pesées futures à utiliser. Seul l'effet d'un imprévu actif varie réellement jour après jour ; rien n'est écrit en base, c'est une projection à la demande, pas une planification stockée. Vérifié en conditions réelles contre le vrai Supabase (décroissance de l'imprévu sur deux jours puis retour à la normale, conforme au calcul attendu).
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).

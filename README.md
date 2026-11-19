@@ -45,12 +45,12 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Scan de code-barres (Open Food Facts) | ✅ fait, testé en réel (saisie manuelle web + caméra sur téléphone) |
 | Recettes, repas favoris | 🔜 prévu |
 | **Replanification face aux imprévus** : déclaration + lissage sur les jours suivants | ✅ fait, testé en réel contre le vrai Supabase (déclaration, règle "un seul actif", annulation, effet sur `nutrition_targets`) — le déclenchement *automatique* par Supabase (webhook via tunnel public) n'est pas testé sur cette machine, simulé manuellement à la place |
-| Vue "Programme" (plan de la semaine, jour par jour) | 🔜 prévu |
+| Vue "Programme" (plan de la semaine, jour par jour) | ✅ fait, testé en réel contre le vrai Supabase |
 | Notifications, graphique de progression | 🔜 prévu |
 
-### Prochaine étape : la vue "Programme"
+### La replanification face aux imprévus
 
-L'imprévu est déclarable et lissé (onglet `Imprévu`) : quand l'utilisateur déclare un écart (restaurant, week-end chargé), le moteur **répartit** la compensation sur les jours suivants (3 à 10 jours, plafond 300 kcal/jour) plutôt que de "punir" un seul jour — voir [docs/algorithm.md §9](docs/algorithm.md). Reste à construire l'onglet `Programme` : une vue "jour par jour" des prochains jours, pour visualiser ce lissage plutôt que de ne voir que l'objectif du jour même.
+Quand l'utilisateur déclare un écart (restaurant, week-end chargé), le moteur **répartit** la compensation sur les jours suivants (3 à 10 jours, plafond 300 kcal/jour) plutôt que de "punir" un seul jour — voir [docs/algorithm.md §9](docs/algorithm.md). L'onglet `Imprévu` sert à le déclarer, l'onglet `Programme` à voir le plan des prochains jours qui en résulte (calculé à la demande par le service, rien n'est stocké jour par jour).
 
 ## Démarrage rapide
 
