@@ -13,4 +13,5 @@ for f in migrations/*.sql; do
   sed '/create extension if not exists pg_net/d' "$f" | run -f -
 done
 run -f tests/food_journal_test.sql
+run -f tests/calorie_events_test.sql
 echo "OK : migrations et tests de sécurité passés"
