@@ -99,6 +99,17 @@ export interface CalorieEvent {
   created_at: string;
 }
 
+/** Un jour du plan ("Programme"), projeté par le service à partir des pesées et de l'imprévu actif. */
+export interface ForecastDay {
+  date: string;
+  caloriesKcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  eventOffsetKcal: number;
+  note: string | null;
+}
+
 export interface WaterLog {
   id: string;
   logged_on: string;
