@@ -28,6 +28,7 @@ export interface NutritionTargets {
   carbs_g: number;
   fat_g: number;
   adaptive_offset_kcal: number;
+  event_offset_kcal: number;
   weight_trend_kg: number | null;
   weekly_rate_kg: number | null;
   note: string | null;
@@ -86,6 +87,15 @@ export interface MealEntry {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  created_at: string;
+}
+
+/** Imprévu : écart calorique estimé par l'utilisateur, lissé par le service sur les jours suivants. */
+export interface CalorieEvent {
+  id: string;
+  user_id: string;
+  event_date: string;
+  excess_kcal: number;
   created_at: string;
 }
 

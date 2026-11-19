@@ -91,6 +91,7 @@ export default function Dashboard() {
             <Text style={{ color: colors.muted, marginTop: 10 }}>
               Dépense estimée : {targets.tdee_kcal} kcal
               {targets.adaptive_offset_kcal !== 0 && ` · ajustement ${targets.adaptive_offset_kcal > 0 ? '+' : ''}${targets.adaptive_offset_kcal} kcal`}
+              {targets.event_offset_kcal !== 0 && ` · imprévu ${targets.event_offset_kcal} kcal`}
             </Text>
             {targets.note && <Text style={{ marginTop: 6 }}>{targets.note}</Text>}
           </>
