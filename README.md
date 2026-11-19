@@ -44,12 +44,13 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Journal alimentaire : aliments par 100 g, repas, macros, eau, ajout rapide | 🚧 en cours (PR `feat/food-journal`) |
 | Scan de code-barres (Open Food Facts) | ✅ fait, testé en réel (saisie manuelle web + caméra sur téléphone) |
 | Recettes, repas favoris | 🔜 prévu |
-| **Replanification face aux imprévus** (repas à l'extérieur, écart, voyage) | 🔜 v2, voir ci-dessous |
+| **Replanification face aux imprévus** : déclaration + lissage sur les jours suivants | ✅ fait (PR `feat/imprevu`) |
+| Vue "Programme" (plan de la semaine, jour par jour) | 🔜 prévu |
 | Notifications, graphique de progression | 🔜 prévu |
 
-### Prochaine étape : les imprévus
+### Prochaine étape : la vue "Programme"
 
-L'idée de la v2 : quand l'utilisateur déclare un événement (restaurant ce soir, week-end chargé), le moteur **répartit** l'écart sur les jours suivants dans les bornes de sécurité plutôt que de "punir" un seul jour. Le modèle de données et le moteur actuels (calories cibles + offset persisté) ont été conçus pour accueillir cette extension.
+L'imprévu est déclarable et lissé (onglet `Imprévu`) : quand l'utilisateur déclare un écart (restaurant, week-end chargé), le moteur **répartit** la compensation sur les jours suivants (3 à 10 jours, plafond 300 kcal/jour) plutôt que de "punir" un seul jour — voir [docs/algorithm.md §9](docs/algorithm.md). Reste à construire l'onglet `Programme` : une vue "jour par jour" des prochains jours, pour visualiser ce lissage plutôt que de ne voir que l'objectif du jour même.
 
 ## Démarrage rapide
 

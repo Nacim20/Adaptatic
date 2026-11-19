@@ -70,7 +70,20 @@ Règles de conversion (`OffProductMapper`) :
 - Valeurs refusées comme incohérentes : kcal hors 0–900, macros hors 0–100 g, somme des macros > 101 g.
 - Portion : utilisée seulement si 0 < quantité ≤ 5000 ; on suppose 1 ml ≈ 1 g (approximation pour les boissons).
 
-Limites : OFF est une base collaborative, les valeurs peuvent être fausses même si cohérentes ; l'app le rappelle et cite la licence ODbL. Tous les codes n'existent pas dans OFF. La clé de contrôle GS1 est vérifiée côté app avant tout appel. Non vérifié en conditions réelles depuis l'environnement de développement (testé avec des simulations) : le premier scan réel est le vrai test.
+Limites : OFF est une base collaborative, les valeurs peuvent être fausses même si cohérentes ; l'app le rappelle et cite la licence ODbL. Tous les codes n'existent pas dans OFF. La clé de contrôle GS1 est vérifiée côté app avant tout appel. Vérifié en conditions réelles (saisie manuelle sur web et scan caméra sur téléphone, voir README).
+
+## 9. Imprévu
+
+Quand un écart calorique est prévisible (restaurant, voyage, semaine chargée), l'utilisateur le déclare plutôt que de se le voir imposer d'un coup le lendemain.
+
+- **L'écart est l'estimation de l'utilisateur, pas une valeur calculée ou sourcée.** L'app ne propose aucun préréglage du type « un restaurant = +X kcal » : ce serait inventer une statistique sans base. L'utilisateur entre le nombre de kcal qu'il estime lui-même.
+- **Lissage, pas correction d'un jour** : la compensation ne s'applique jamais le jour de l'écart lui-même, seulement à partir du lendemain, sur `jours = bornes(⌈écart / 300⌉, 3, 10)` jours (entre 3 et 10 jours, jamais tout sur un seul jour).
+- **Plafond de 300 kcal/jour**, quel que soit le nombre d'imprévus actifs cumulés. Un écart énorme (ex. 5 000 kcal) n'est donc pas entièrement compensé dans la fenêtre de 10 jours : l'app l'indique plutôt que de dépasser la borne de sécurité.
+- **Un seul imprévu actif à la fois** (v1) : plus simple à comprendre, et la base l'impose (voir `supabase/migrations/20261119000000_calorie_events.sql`).
+- Le plancher calorique (§3) reste la protection ultime : même avec un imprévu actif, les calories ne descendent jamais sous 1 500 (homme) / 1 200 (femme).
+- Implémenté dans `service/.../engine/EventSpread.java` (fonctions pures, testées indépendamment de l'orchestration).
+
+Limite connue : la fenêtre « un seul à la fois » côté base est une vérification large (10 jours), pas le calcul exact (qui dépend du montant de chaque écart) — volontairement simple plutôt que de dupliquer la formule du moteur en SQL.
 
 ## Limites assumées
 
