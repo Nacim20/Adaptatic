@@ -14,4 +14,5 @@ for f in migrations/*.sql; do
 done
 run -f tests/food_journal_test.sql
 run -f tests/calorie_events_test.sql
+run -f tests/recipes_test.sql
 echo "OK : migrations et tests de sécurité passés"
