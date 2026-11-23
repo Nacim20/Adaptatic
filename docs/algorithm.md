@@ -10,6 +10,8 @@ Le poids brut varie de ±1 kg d'un jour à l'autre sans rapport avec la masse gr
 
 C'est cette tendance, et non la pesée brute, qui alimente les calculs.
 
+**Duplication connue** : le graphique de progression (carte "Tendance du poids", Accueil) réimplémente cette même formule côté app (`app/lib/weightTrend.ts`) pour fonctionner sans dépendre du service — ce n'est pas une règle inventée, juste la même formule copiée. Si `τ` ou la formule changent ici, ils doivent changer pareil côté app (un test Vitest vérifie le même cas que `WeightTrendTest.emaSmoothsOutASingleSpike` côté Java, mais ne détecte pas une dérive silencieuse des deux implémentations).
+
 ## 2. Métabolisme de base et dépense
 
 Équation de **Mifflin-St Jeor** (Mifflin et al., *Am J Clin Nutr*, 1990), identifiée comme la plus fiable des équations de prédiction courantes (Frankenfield et al., *J Am Diet Assoc*, 2005) :

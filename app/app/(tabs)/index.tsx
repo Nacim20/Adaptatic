@@ -4,9 +4,16 @@ import { ActivityIndicator, View } from 'react-native';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
 import { deviceTimeZone, localDateISO } from '../../lib/dates';
+import { WeightChart } from '../../lib/chart';
 import { Button, Card, Field, Screen, Text, colors, styles } from '../../lib/theme';
 import { NutritionTargets, Profile, WeightLog } from '../../lib/types';
 import { ScreenHeader } from '../../lib/ui';
+import { trendSeries } from '../../lib/weightTrend';
+
+/** Pesées gardées pour le graphique (le service, lui, n'en lit que 60 pour calculer). */
+const CHART_HISTORY_DAYS_LIMIT = 90;
+/** Nombre de pesées affichées en liste sous le champ de saisie. */
+const RECENT_LIST_SIZE = 10;
 
 export default function Dashboard() {
   const { session } = useSession();
@@ -24,7 +31,7 @@ export default function Dashboard() {
       supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('nutrition_targets').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('weight_logs').select('id,weight_kg,logged_on').eq('user_id', uid)
-        .order('logged_on', { ascending: false }).limit(14),
+        .order('logged_on', { ascending: false }).limit(CHART_HISTORY_DAYS_LIMIT),
     ]);
     if (p.error || t.error || w.error) {
       setError('Chargement impossible. Réessaie dans un instant.');
@@ -105,17 +112,20 @@ export default function Dashboard() {
         <Text style={styles.big}>
           {targets?.weight_trend_kg != null ? `${targets.weight_trend_kg.toFixed(1)} kg` : '—'}
         </Text>
-        <Text style={{ color: colors.muted }}>
+        <Text style={{ color: colors.muted, marginBottom: weights.length >= 2 ? 10 : 0 }}>
           {targets?.weekly_rate_kg != null
             ? `${targets.weekly_rate_kg > 0 ? '+' : ''}${targets.weekly_rate_kg.toFixed(2)} kg / semaine (14 derniers jours)`
             : 'Pèse-toi régulièrement : 5 pesées sur 14 jours suffisent pour mesurer ta tendance.'}
         </Text>
+        {weights.length >= 2 && (
+          <WeightChart points={trendSeries(weights.map((w) => ({ date: w.logged_on, kg: w.weight_kg })))} />
+        )}
       </Card>
 
       <Card>
         <Field label="Ma pesée du jour (kg)" value={input} onChangeText={setInput} keyboardType="numeric" />
         <Button title="Enregistrer" onPress={addWeight} disabled={busy || !input} />
-        {weights.map((w) => (
+        {weights.slice(0, RECENT_LIST_SIZE).map((w) => (
           <View key={w.id} style={[styles.row, { paddingTop: 8 }]}>
             <Text style={{ color: colors.muted }}>{w.logged_on}</Text>
             <Text>{w.weight_kg} kg</Text>
