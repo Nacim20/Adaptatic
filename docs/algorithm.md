@@ -110,6 +110,8 @@ Deux rappels locaux par jour au maximum (13 h et 20 h, heure de l'appareil), jam
 - **Indisponible sur web** : les notifications différées n'y sont pas supportées nativement ; fonctionne sur téléphone (iOS/Android, testé via Expo Go).
 - Implémenté en deux fichiers : `lib/checkIn.ts` (message, fonction pure testée) et `lib/notifications.ts` (programmation effective, dépend d'`expo-notifications`, non testable en Vitest hors runtime natif).
 
+Vérifié sur iPhone réel (Expo Go) : la permission est demandée, exactement un rappel programmé (13h déjà passé, 20h restant), contenu correct, pas de doublon après plusieurs rechargements de l'écran. L'affichage réel à l'heure prévue n'a pas été observé en direct (programmé ~1h20 à l'avance) : la confirmation que l'heure cible a bien été acceptée par le système d'exploitation (trigger natif iOS) est considérée comme une preuve suffisante.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).
