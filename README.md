@@ -46,7 +46,8 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Recettes, repas favoris | 🔜 prévu |
 | **Replanification face aux imprévus** : déclaration + lissage sur les jours suivants | ✅ fait, testé en réel contre le vrai Supabase (déclaration, règle "un seul actif", annulation, effet sur `nutrition_targets`) — le déclenchement *automatique* par Supabase (webhook via tunnel public) n'est pas testé sur cette machine, simulé manuellement à la place |
 | Vue "Programme" (plan de la semaine, jour par jour) | ✅ fait, testé en réel contre le vrai Supabase |
-| Notifications, graphique de progression | 🔜 prévu |
+| Graphique de progression (poids brut + tendance) | ✅ fait, testé en réel (visuel + données) |
+| Notifications | 🔜 prévu |
 
 ### La replanification face aux imprévus
 
