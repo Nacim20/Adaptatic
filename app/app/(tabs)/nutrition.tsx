@@ -7,6 +7,7 @@ import {
   addEntryFromPast, addWater, deleteEntry, deleteWater, fetchDay, fetchRecentEntries,
 } from '../../lib/journal';
 import { dayLabel, defaultMealForHour, recentDistinct, shiftDate, sumNutrients } from '../../lib/nutrition';
+import { scheduleTodayCheckIns } from '../../lib/notifications';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
 import { Button, Card, Screen, Text, colors, styles } from '../../lib/theme';
@@ -48,6 +49,8 @@ export default function Nutrition() {
       setTargets(t.data as NutritionTargets | null);
       if (p.data) setWaterTarget((p.data as { water_target_ml: number }).water_target_ml);
       setError(null);
+      // Les rappels ne concernent que la journée en cours, pas un jour passé consulté dans l'historique.
+      if (date === today) scheduleTodayCheckIns(day.entries, t.data as NutritionTargets | null);
     } catch (e) {
       if (id === latest.current) setError(e instanceof Error ? e.message : 'Chargement impossible');
     }

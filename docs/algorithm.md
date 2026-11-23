@@ -101,6 +101,15 @@ Une recette est un aliment composite : ses valeurs « pour 100 g » sont **calcu
 
 Vérifié : migrations + tests RLS (conteneur Postgres jetable) et en conditions réelles contre le vrai Supabase (création avec un ingrédient réel, poids final corrigé manuellement, valeurs calculées exactes, utilisable comme un aliment normal dans le journal).
 
+## 11. Rappels "programme du jour"
+
+Deux rappels locaux par jour au maximum (13 h et 20 h, heure de l'appareil), jamais plus : le but est de dire où on en est par rapport à l'objectif calorique du jour, pas de harceler. Aucun rappel de pesée : le rythme de pesée reste un choix de l'utilisateur, pas une notification automatique.
+
+- **Purement local** (`expo-notifications`), programmé par l'app elle-même à chaque ouverture de l'onglet Nutrition pour le jour courant — aucun serveur, aucun jeton d'appareil, ne fonctionne pas si l'app n'a pas été ouverte du tout aujourd'hui.
+- **Limite assumée** : le contenu reflète l'état du journal au moment où l'app a été ouverte, pas en temps réel. Si l'app n'est pas rouverte avant l'heure du rappel, le message peut être dépassé (ex. un repas noté juste après la dernière ouverture n'apparaîtra pas dans le message).
+- **Indisponible sur web** : les notifications différées n'y sont pas supportées nativement ; fonctionne sur téléphone (iOS/Android, testé via Expo Go).
+- Implémenté en deux fichiers : `lib/checkIn.ts` (message, fonction pure testée) et `lib/notifications.ts` (programmation effective, dépend d'`expo-notifications`, non testable en Vitest hors runtime natif).
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).
