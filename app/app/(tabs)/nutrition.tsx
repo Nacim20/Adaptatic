@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -10,9 +11,9 @@ import { dayLabel, defaultMealForHour, recentDistinct, shiftDate, sumNutrients }
 import { scheduleTodayCheckIns } from '../../lib/notifications';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
-import { Button, Card, Screen, Text, colors, styles } from '../../lib/theme';
+import { Button, Screen, Text, colors, styles } from '../../lib/theme';
 import { MEALS, MEAL_LABELS, MealEntry, NutritionTargets, WaterLog } from '../../lib/types';
-import { ProgressBar, ScreenHeader } from '../../lib/ui';
+import { CalorieRing, MEAL_ICONS, MEAL_TINTS, ProgressBar, ScreenHeader } from '../../lib/ui';
 
 const WATER_STEP_ML = 250;
 
@@ -102,53 +103,54 @@ export default function Nutrition() {
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <Card>
-        <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', letterSpacing: 0.5 }}>ÉNERGIE QUOTIDIENNE</Text>
-        <Text style={{ fontSize: 34, fontWeight: '800', textAlign: 'center', marginTop: 4 }}>
-          {Math.round(total.kcal)}
-          {targets && <Text style={{ color: colors.teal }}> / {targets.calories_kcal} Kcal</Text>}
-          {!targets && <Text style={{ color: colors.teal }}> Kcal</Text>}
+      <LinearGradient colors={[colors.cardAlt, colors.card]} style={s.ringCard}>
+        <CalorieRing consumed={total.kcal} target={targets?.calories_kcal ?? null} />
+        <Text style={{ color: colors.muted, fontSize: 13, marginTop: 10 }}>
+          {Math.round(total.kcal)} {date === today ? "consommées aujourd'hui" : 'consommées ce jour-là'}
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', marginBottom: 14 }}>
-          {date === today ? "consommées aujourd'hui" : 'consommées ce jour-là'}
-        </Text>
-        {macros.map((m) => (
-          <View key={m.label} style={{ marginBottom: 10 }}>
-            <View style={[styles.row, { marginBottom: 4 }]}>
-              <Text style={{ color: colors.muted, fontSize: 11, letterSpacing: 0.5 }}>{m.label}</Text>
-              <Text style={{ fontSize: 13 }}>
-                {Math.round(m.value)}g{m.target ? <Text style={{ color: colors.muted }}> / {m.target}g</Text> : null}
-              </Text>
+
+        <View style={{ alignSelf: 'stretch', marginTop: 16, gap: 10 }}>
+          {macros.map((m) => (
+            <View key={m.label}>
+              <View style={[styles.row, { marginBottom: 4 }]}>
+                <Text style={{ color: colors.muted, fontSize: 11, letterSpacing: 0.5 }}>{m.label}</Text>
+                <Text style={{ fontSize: 13 }}>
+                  {Math.round(m.value)}g{m.target ? <Text style={{ color: colors.muted }}> / {m.target}g</Text> : null}
+                </Text>
+              </View>
+              <ProgressBar value={m.value} target={m.target} color={m.color} />
             </View>
-            <ProgressBar value={m.value} target={m.target} color={m.color} />
-          </View>
-        ))}
+          ))}
+        </View>
+
         {over > 0 && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 12, textAlign: 'center' }}>
             {over} kcal au-dessus de ta cible. Un jour ne change pas ta tendance : c'est la moyenne de la semaine qui compte.
           </Text>
         )}
         {!targets && (
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Ta cible apparaîtra dès que ton objectif sera calculé (voir Accueil).</Text>
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+            Ta cible apparaîtra dès que ton objectif sera calculé (voir Accueil).
+          </Text>
         )}
-      </Card>
+      </LinearGradient>
 
-      <Card>
+      <View style={s.card}>
         <View style={[styles.row, { alignItems: 'center' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-              <Ionicons name="water-outline" size={20} color={colors.primary} />
+            <View style={s.iconTile}>
+              <Ionicons name="water-outline" size={20} color={colors.teal} />
             </View>
             <View>
               <Text style={{ fontWeight: '600' }}>Hydratation</Text>
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>
+              <Text style={{ color: colors.teal, fontWeight: '700' }}>
                 {(waterMl / 1000).toFixed(2).replace(/\.?0+$/, '')}L / {(waterTarget / 1000).toFixed(1)}L
               </Text>
             </View>
           </View>
           <Pressable disabled={busy} onPress={() => uid && act(() => addWater(uid, date, WATER_STEP_ML))}
-            style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14, opacity: busy ? 0.6 : 1 }}>
-            <Text style={{ fontWeight: '700' }}>+ {WATER_STEP_ML} ml</Text>
+            style={{ backgroundColor: colors.teal, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14, opacity: busy ? 0.6 : 1 }}>
+            <Text style={{ fontWeight: '700', color: '#042' }}>+ {WATER_STEP_ML} ml</Text>
           </Pressable>
         </View>
         {water.length > 0 && (
@@ -156,24 +158,29 @@ export default function Nutrition() {
             <Text style={{ color: colors.muted, fontSize: 12 }}>Annuler le dernier ajout ({water[water.length - 1].amount_ml} ml)</Text>
           </Pressable>
         )}
-      </Card>
+      </View>
 
       {MEALS.map((meal) => {
         const items = entries.filter((e) => e.meal === meal);
         const sub = sumNutrients(items);
         return (
-          <Card key={meal}>
+          <View key={meal} style={s.card}>
             <View style={[styles.row, { alignItems: 'center' }]}>
-              <View>
-                <Text style={{ fontWeight: '700', fontSize: 16 }}>{MEAL_LABELS[meal]}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  {Math.round(sub.kcal)} kcal · P {Math.round(sub.protein_g)} · G {Math.round(sub.carbs_g)} · L {Math.round(sub.fat_g)}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={[s.iconTile, { backgroundColor: MEAL_TINTS[meal] }]}>
+                  <Ionicons name={MEAL_ICONS[meal]} size={19} color={colors.text} />
+                </View>
+                <View>
+                  <Text style={{ fontWeight: '700', fontSize: 15 }}>{MEAL_LABELS[meal]}</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>
+                    {Math.round(sub.kcal)} kcal · P {Math.round(sub.protein_g)} · G {Math.round(sub.carbs_g)} · L {Math.round(sub.fat_g)}
+                  </Text>
+                </View>
               </View>
               <Pressable accessibilityLabel={`Ajouter au ${MEAL_LABELS[meal]}`} hitSlop={8}
                 onPress={() => router.push({ pathname: '/add-food', params: { meal, date } })}
-                style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="add" size={22} color="#fff" />
+                style={[s.addButton, meal === quickMeal && { borderColor: colors.primary }]}>
+                <Ionicons name="add" size={20} color={colors.primary} />
               </Pressable>
             </View>
             {items.length === 0 ? (
@@ -192,7 +199,7 @@ export default function Nutrition() {
                 </View>
               ))
             )}
-          </Card>
+          </View>
         );
       })}
 
@@ -224,3 +231,22 @@ export default function Nutrition() {
     </Screen>
   );
 }
+
+const s = {
+  ringCard: {
+    borderRadius: 24, padding: 20, marginBottom: 14, alignItems: 'center' as const,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  card: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 16, padding: 14, marginBottom: 14,
+  },
+  iconTile: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: colors.cardAlt,
+    alignItems: 'center' as const, justifyContent: 'center' as const, marginRight: 12,
+  },
+  addButton: {
+    width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center' as const, justifyContent: 'center' as const,
+  },
+};

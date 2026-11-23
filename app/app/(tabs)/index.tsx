@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, useFocusEffect, useRouter } from 'expo-router';
-import { ComponentProps, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { localDateISO } from '../../lib/dates';
 import { addWater, deleteWater, fetchDay } from '../../lib/journal';
@@ -9,17 +9,10 @@ import { defaultMealForHour, sumNutrients } from '../../lib/nutrition';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
 import { Card, Screen, Text, colors, styles } from '../../lib/theme';
-import { MEALS, MEAL_LABELS, MealEntry, MealType, NutritionTargets, Profile, WaterLog } from '../../lib/types';
-import { CalorieRing, ProgressBar, ScreenHeader } from '../../lib/ui';
+import { MEALS, MEAL_LABELS, MealEntry, NutritionTargets, Profile, WaterLog } from '../../lib/types';
+import { CalorieRing, MEAL_ICONS, MEAL_TINTS, ProgressBar, ScreenHeader } from '../../lib/ui';
 
 const WATER_STEP_ML = 250;
-
-const MEAL_ICONS: Record<MealType, ComponentProps<typeof Ionicons>['name']> = {
-  breakfast: 'sunny-outline', lunch: 'restaurant-outline', dinner: 'moon-outline', snack: 'cafe-outline',
-};
-const MEAL_TINTS: Record<MealType, string> = {
-  breakfast: 'rgba(255,159,10,0.16)', lunch: 'rgba(10,132,255,0.16)', dinner: 'rgba(45,212,191,0.16)', snack: 'rgba(48,209,88,0.16)',
-};
 
 export default function Dashboard() {
   const router = useRouter();

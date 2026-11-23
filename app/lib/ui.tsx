@@ -1,10 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { todayLabel } from './dates';
 import { Card, Text, colors } from './theme';
+import { MealType } from './types';
 import { ratio } from './nutrition';
+
+/** Icône et teinte de chaque repas, partagées entre l'Accueil et le journal détaillé. */
+export const MEAL_ICONS: Record<MealType, ComponentProps<typeof Ionicons>['name']> = {
+  breakfast: 'sunny-outline', lunch: 'restaurant-outline', dinner: 'moon-outline', snack: 'cafe-outline',
+};
+export const MEAL_TINTS: Record<MealType, string> = {
+  breakfast: 'rgba(255,159,10,0.16)', lunch: 'rgba(10,132,255,0.16)', dinner: 'rgba(45,212,191,0.16)', snack: 'rgba(48,209,88,0.16)',
+};
 
 /** En-tête des écrans : date en bleu, titre, avatar qui ouvre le profil. */
 export function ScreenHeader({ title }: { title: string }) {
