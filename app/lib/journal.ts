@@ -73,6 +73,21 @@ export async function createFood(uid: string, f: NewFood): Promise<Food> {
   return check(res, "Création de l'aliment") as Food;
 }
 
+export interface NewRecipe {
+  name: string;
+  ingredients: { food_id: string; grams: number }[];
+  yieldG: number;
+  portions: number | null;
+}
+
+/** Créé par la base (create_recipe) à partir des ingrédients et du poids pesé du plat fini. */
+export async function createRecipe(r: NewRecipe): Promise<Food> {
+  const res = await supabase.rpc('create_recipe', {
+    p_name: r.name, p_ingredients: r.ingredients, p_yield_g: r.yieldG, p_portions: r.portions,
+  });
+  return check(res, 'Création de la recette') as Food;
+}
+
 export async function updateWaterTarget(uid: string, ml: number) {
   const res = await supabase.from('profiles').update({ water_target_ml: ml }).eq('user_id', uid);
   if (res.error) throw new Error(`Enregistrement impossible : ${res.error.message}`);

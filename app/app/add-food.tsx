@@ -109,6 +109,12 @@ export default function AddFood() {
               Données : Open Food Facts (ODbL). Base collaborative : vérifie les valeurs avec l'emballage.
             </Text>
           )}
+          {selected.source === 'recipe' && (
+            <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>
+              Recette : {selected.recipe_yield_g} g au total
+              {selected.recipe_portions ? `, ${selected.recipe_portions} portions` : ''}.
+            </Text>
+          )}
           {!gramsOk && <Text style={styles.error}>Quantité entre {MIN_G} et {MAX_G} g</Text>}
           {preview && (
             <Text style={{ marginBottom: 10 }}>
@@ -138,6 +144,7 @@ export default function AddFood() {
             </Pressable>
           ))}
           <Button secondary title="Créer un aliment" onPress={() => router.push({ pathname: '/create-food', params: { name: query.trim() } })} />
+          <Button secondary title="Créer une recette" onPress={() => router.push('/create-recipe')} />
         </>
       )}
     </Screen>

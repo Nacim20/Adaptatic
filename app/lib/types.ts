@@ -71,7 +71,9 @@ export interface Food {
   fat_100: number;
   serving_g: number | null;
   serving_label: string | null;
-  source: 'user' | 'openfoodfacts' | 'ciqual';
+  source: 'user' | 'openfoodfacts' | 'ciqual' | 'recipe';
+  recipe_yield_g: number | null;
+  recipe_portions: number | null;
 }
 
 /** Entrée de repas : copie nutritionnelle calculée par la base. */

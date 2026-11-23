@@ -91,6 +91,16 @@ Vérifié en conditions réelles (déclaration, règle "un seul actif", annulati
 
 **Vue "Programme"** : `GET /api/targets/forecast` (authentifié par le jeton de l'utilisateur, comme le scan de code-barres) rejoue `MetabolicEngine.compute` une fois par jour sur la fenêtre demandée (7 jours par défaut, 14 au plus), avec les **mêmes pesées et le même état adaptatif qu'aujourd'hui** — il n'y a pas de pesées futures à utiliser. Seul l'effet d'un imprévu actif varie réellement jour après jour ; rien n'est écrit en base, c'est une projection à la demande, pas une planification stockée. Vérifié en conditions réelles contre le vrai Supabase (décroissance de l'imprévu sur deux jours puis retour à la normale, conforme au calcul attendu).
 
+## 10. Recettes
+
+Une recette est un aliment composite : ses valeurs « pour 100 g » sont **calculées par la base** (fonction `create_recipe`, jamais un chiffre envoyé par le client — même principe que la copie nutritionnelle des entrées de repas, §7) à partir de la somme des ingrédients et du **poids réel du plat fini, pesé par l'utilisateur**.
+
+- Les kcal totales ne changent pas à la cuisson (conservation de l'énergie) : `kcal_total = Σ (grammes_ingrédient × kcal_100_ingrédient / 100)`. Seule la densité kcal/100 g dépend du poids final, qui diffère de la somme des ingrédients crus (eau évaporée, riz qui gonfle...) — d'où le champ obligatoire « poids du plat fini », pré-rempli avec la somme des ingrédients mais à corriger avec la vraie pesée.
+- Une recette devient un aliment comme un autre (`foods`, `source = 'recipe'`) : réutilise sans rien dupliquer la recherche, l'ajout au journal, les portions (`serving_g` = poids fini ÷ nombre de portions si renseigné).
+- v1 : pas de modification après création (pour corriger un ingrédient, on recrée la recette). `recipe_ingredients` garde la composition pour affichage futur, pas pour un recalcul automatique si un ingrédient change ensuite.
+
+Vérifié : migrations + tests RLS (conteneur Postgres jetable). Non vérifié en conditions réelles contre le vrai Supabase au moment d'écrire ceci.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).
