@@ -1,59 +1,65 @@
-import { Redirect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import { ComponentProps, useCallback, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { localDateISO } from '../../lib/dates';
+import { addWater, deleteWater, fetchDay } from '../../lib/journal';
+import { defaultMealForHour, sumNutrients } from '../../lib/nutrition';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
-import { deviceTimeZone, localDateISO } from '../../lib/dates';
-import { WeightChart } from '../../lib/chart';
-import { Button, Card, Field, Screen, Text, colors, styles } from '../../lib/theme';
-import { NutritionTargets, Profile, WeightLog } from '../../lib/types';
-import { ScreenHeader } from '../../lib/ui';
-import { trendSeries } from '../../lib/weightTrend';
+import { Card, Screen, Text, colors, styles } from '../../lib/theme';
+import { MEALS, MEAL_LABELS, MealEntry, MealType, NutritionTargets, Profile, WaterLog } from '../../lib/types';
+import { CalorieRing, ProgressBar, ScreenHeader } from '../../lib/ui';
 
-/** Pesées gardées pour le graphique (le service, lui, n'en lit que 60 pour calculer). */
-const CHART_HISTORY_DAYS_LIMIT = 90;
-/** Nombre de pesées affichées en liste sous le champ de saisie. */
-const RECENT_LIST_SIZE = 10;
+const WATER_STEP_ML = 250;
+
+const MEAL_ICONS: Record<MealType, ComponentProps<typeof Ionicons>['name']> = {
+  breakfast: 'sunny-outline', lunch: 'restaurant-outline', dinner: 'moon-outline', snack: 'cafe-outline',
+};
+const MEAL_TINTS: Record<MealType, string> = {
+  breakfast: 'rgba(255,159,10,0.16)', lunch: 'rgba(10,132,255,0.16)', dinner: 'rgba(45,212,191,0.16)', snack: 'rgba(48,209,88,0.16)',
+};
 
 export default function Dashboard() {
+  const router = useRouter();
   const { session } = useSession();
   const uid = session?.user.id;
+  const today = localDateISO();
+
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [targets, setTargets] = useState<NutritionTargets | null>(null);
-  const [weights, setWeights] = useState<WeightLog[]>([]);
-  const [input, setInput] = useState('');
+  const [entries, setEntries] = useState<MealEntry[]>([]);
+  const [water, setWater] = useState<WaterLog[]>([]);
+  const [waterTarget, setWaterTarget] = useState(2000);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!uid) return;
-    const [p, t, w] = await Promise.all([
+    const [p, t, day] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('nutrition_targets').select('*').eq('user_id', uid).maybeSingle(),
-      supabase.from('weight_logs').select('id,weight_kg,logged_on').eq('user_id', uid)
-        .order('logged_on', { ascending: false }).limit(CHART_HISTORY_DAYS_LIMIT),
+      fetchDay(uid, today),
     ]);
-    if (p.error || t.error || w.error) {
+    if (p.error || t.error) {
       setError('Chargement impossible. Réessaie dans un instant.');
       setProfile((prev) => prev ?? null);
       return;
     }
     const prof = p.data as Profile | null;
     setProfile(prof);
-    // « Aujourd'hui » dépend du fuseau : on le garde à jour (voyage, changement d'appareil).
-    // Au mieux : en cas d'échec, la prochaine ouverture réessaie.
-    const tz = deviceTimeZone();
-    if (prof && prof.timezone !== tz) {
-      supabase.from('profiles').update({ timezone: tz }).eq('user_id', uid).then(() => {});
-    }
+    if (prof) setWaterTarget(prof.water_target_ml);
     setTargets(t.data as NutritionTargets | null);
-    setWeights((w.data ?? []) as WeightLog[]);
-  }, [uid]);
+    setEntries(day.entries);
+    setWater(day.water);
+    setError(null);
+  }, [uid, today]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   // Le service Java écrit nutrition_targets : on se met à jour en direct.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!uid) return;
     const channel = supabase.channel('targets')
       .on('postgres_changes',
@@ -61,78 +67,155 @@ export default function Dashboard() {
         (payload) => setTargets(payload.new as NutritionTargets))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [uid]);
+  }, [uid]));
 
-  async function addWeight() {
-    const kg = Number(input.replace(',', '.'));
-    if (!(kg >= 30 && kg <= 300)) return setError('Poids entre 30 et 300 kg');
+  async function act(fn: () => Promise<void>) {
+    if (busy) return;
     setBusy(true);
-    setError(null);
-    const { error: e } = await supabase.from('weight_logs').upsert(
-      { user_id: uid, weight_kg: kg, logged_on: localDateISO() },
-      { onConflict: 'user_id,logged_on' });
-    setBusy(false);
-    if (e) return setError(e.message);
-    setInput('');
-    load();
+    try {
+      await fn();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Action impossible');
+    } finally {
+      setBusy(false);
+      load();
+    }
   }
 
-  if (profile === undefined) return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.bg }} color={colors.primary} />;
+  if (profile === undefined) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (profile === null && !error) return <Redirect href="/onboarding" />;
+
+  const total = sumNutrients(entries);
+  const waterMl = water.reduce((s, w) => s + w.amount_ml, 0);
+  const quickMeal = defaultMealForHour(new Date().getHours());
+
+  const macros = [
+    { label: 'PROTÉINES', value: total.protein_g, target: targets?.protein_g, color: colors.green },
+    { label: 'GLUCIDES', value: total.carbs_g, target: targets?.carbs_g, color: colors.orange },
+    { label: 'LIPIDES', value: total.fat_g, target: targets?.fat_g, color: colors.red },
+  ];
 
   return (
     <Screen>
-      <ScreenHeader title="Aperçu" />
+      <ScreenHeader title="Accueil" />
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <Card>
-        <Text style={styles.label}>Objectif calorique</Text>
-        {targets ? (
-          <>
-            <Text style={styles.big}>{targets.calories_kcal} <Text style={{ fontSize: 16 }}>kcal</Text></Text>
-            <View style={[styles.row, { marginTop: 8 }]}>
-              <Text>Protéines {targets.protein_g} g</Text>
-              <Text>Glucides {targets.carbs_g} g</Text>
-              <Text>Lipides {targets.fat_g} g</Text>
+      <LinearGradient colors={[colors.cardAlt, colors.card]} style={s.ringCard}>
+        <CalorieRing consumed={total.kcal} target={targets?.calories_kcal ?? null} />
+        <Text style={{ color: colors.muted, fontSize: 13, marginTop: 10 }}>
+          {Math.round(total.kcal)} consommées · {targets ? `${targets.calories_kcal} objectif` : 'calcul en cours'}
+        </Text>
+        {!targets && (
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, textAlign: 'center' }}>
+            Le service de calcul doit tourner, voir docs/setup.md.
+          </Text>
+        )}
+        {targets?.note && (targets.adaptive_offset_kcal !== 0 || targets.event_offset_kcal !== 0) && (
+          <View style={s.notePill}>
+            <Ionicons name="flash" size={13} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600', flex: 1 }}>{targets.note}</Text>
+          </View>
+        )}
+        {targets?.note && targets.adaptive_offset_kcal === 0 && targets.event_offset_kcal === 0 && (
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10, textAlign: 'center' }}>{targets.note}</Text>
+        )}
+      </LinearGradient>
+
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+        {macros.map((m) => (
+          <View key={m.label} style={s.macroCard}>
+            <View style={[styles.row, { alignItems: 'center' }]}>
+              <Text style={{ fontSize: 10.5, color: colors.muted, fontWeight: '700', letterSpacing: 0.3 }}>{m.label}</Text>
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: m.color }} />
             </View>
-            <Text style={{ color: colors.muted, marginTop: 10 }}>
-              Dépense estimée : {targets.tdee_kcal} kcal
-              {targets.adaptive_offset_kcal !== 0 && ` · ajustement ${targets.adaptive_offset_kcal > 0 ? '+' : ''}${targets.adaptive_offset_kcal} kcal`}
-              {targets.event_offset_kcal !== 0 && ` · imprévu ${targets.event_offset_kcal} kcal`}
+            <Text style={{ fontSize: 16, fontWeight: '700', marginVertical: 6 }}>
+              {Math.round(m.value)}<Text style={{ fontSize: 11, color: colors.muted, fontWeight: '500' }}>/{m.target ?? '—'}g</Text>
             </Text>
-            {targets.note && <Text style={{ marginTop: 6 }}>{targets.note}</Text>}
-          </>
-        ) : (
-          <Text>Calcul en cours… (le service de calcul doit être démarré, voir docs/setup.md)</Text>
-        )}
-      </Card>
-
-      <Card>
-        <Text style={styles.label}>Tendance du poids</Text>
-        <Text style={styles.big}>
-          {targets?.weight_trend_kg != null ? `${targets.weight_trend_kg.toFixed(1)} kg` : '—'}
-        </Text>
-        <Text style={{ color: colors.muted, marginBottom: weights.length >= 2 ? 10 : 0 }}>
-          {targets?.weekly_rate_kg != null
-            ? `${targets.weekly_rate_kg > 0 ? '+' : ''}${targets.weekly_rate_kg.toFixed(2)} kg / semaine (14 derniers jours)`
-            : 'Pèse-toi régulièrement : 5 pesées sur 14 jours suffisent pour mesurer ta tendance.'}
-        </Text>
-        {weights.length >= 2 && (
-          <WeightChart points={trendSeries(weights.map((w) => ({ date: w.logged_on, kg: w.weight_kg })))} />
-        )}
-      </Card>
-
-      <Card>
-        <Field label="Ma pesée du jour (kg)" value={input} onChangeText={setInput} keyboardType="numeric" />
-        <Button title="Enregistrer" onPress={addWeight} disabled={busy || !input} />
-        {weights.slice(0, RECENT_LIST_SIZE).map((w) => (
-          <View key={w.id} style={[styles.row, { paddingTop: 8 }]}>
-            <Text style={{ color: colors.muted }}>{w.logged_on}</Text>
-            <Text>{w.weight_kg} kg</Text>
+            <ProgressBar value={m.value} target={m.target} color={m.color} />
           </View>
         ))}
+      </View>
+
+      <Card>
+        <View style={[styles.row, { alignItems: 'center' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View style={s.waterIcon}>
+              <Ionicons name="water-outline" size={20} color={colors.teal} />
+            </View>
+            <View>
+              <Text style={{ fontWeight: '600' }}>Hydratation</Text>
+              <Text style={{ color: colors.teal, fontWeight: '700' }}>
+                {(waterMl / 1000).toFixed(2).replace(/\.?0+$/, '')}L / {(waterTarget / 1000).toFixed(1)}L
+              </Text>
+            </View>
+          </View>
+          <Pressable disabled={busy} onPress={() => uid && act(() => addWater(uid, today, WATER_STEP_ML))}
+            style={{ backgroundColor: colors.teal, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14, opacity: busy ? 0.6 : 1 }}>
+            <Text style={{ fontWeight: '700', color: '#042' }}>+ {WATER_STEP_ML} ml</Text>
+          </Pressable>
+        </View>
+        {water.length > 0 && (
+          <Pressable disabled={busy} onPress={() => act(() => deleteWater(water[water.length - 1].id))} style={{ marginTop: 10 }}>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>Annuler le dernier ajout ({water[water.length - 1].amount_ml} ml)</Text>
+          </Pressable>
+        )}
       </Card>
 
+      <View style={[styles.row, { alignItems: 'baseline', marginBottom: 10 }]}>
+        <Text style={{ fontWeight: '700', fontSize: 16 }}>Aujourd'hui</Text>
+        <Pressable onPress={() => router.push('/(tabs)/nutrition')}>
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Tout le journal</Text>
+        </Pressable>
+      </View>
+
+      {MEALS.map((meal) => {
+        const items = entries.filter((e) => e.meal === meal);
+        const sub = sumNutrients(items);
+        return (
+          <Pressable key={meal} onPress={() => router.push({ pathname: '/add-food', params: { meal, date: today } })} style={s.mealRow}>
+            <View style={[s.waterIcon, { backgroundColor: MEAL_TINTS[meal] }]}>
+              <Ionicons name={MEAL_ICONS[meal]} size={19} color={colors.text} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '600', fontSize: 14.5 }}>{MEAL_LABELS[meal]}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12.5, marginTop: 1 }}>
+                {items.length === 0 ? 'Rien noté' : `${items.length} aliment${items.length > 1 ? 's' : ''} · ${Math.round(sub.kcal)} kcal`}
+              </Text>
+            </View>
+            <View style={[s.addButton, meal === quickMeal && { borderColor: colors.primary }]}>
+              <Ionicons name="add" size={18} color={colors.primary} />
+            </View>
+          </Pressable>
+        );
+      })}
     </Screen>
   );
 }
+
+const s = {
+  ringCard: {
+    borderRadius: 24, padding: 20, marginBottom: 14, alignItems: 'center' as const,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  notePill: {
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginTop: 14,
+    backgroundColor: 'rgba(10,132,255,0.12)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.35)',
+    borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12, alignSelf: 'stretch' as const,
+  },
+  macroCard: {
+    flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 16, padding: 11,
+  },
+  waterIcon: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: colors.cardAlt,
+    alignItems: 'center' as const, justifyContent: 'center' as const, marginRight: 12,
+  },
+  mealRow: {
+    flexDirection: 'row' as const, alignItems: 'center' as const, backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 12, marginBottom: 10,
+  },
+  addButton: {
+    width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center' as const, justifyContent: 'center' as const,
+  },
+};

@@ -23,6 +23,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Accueil', tabBarIcon: icon('home-outline') }} />
       <Tabs.Screen name="imprevu" options={{ title: 'Imprévu', tabBarIcon: icon('flash-outline') }} />
       <Tabs.Screen name="programme" options={{ title: 'Programme', tabBarIcon: icon('calendar-outline') }} />
+      <Tabs.Screen name="progres" options={{ title: 'Progrès', tabBarIcon: icon('trending-up-outline') }} />
       <Tabs.Screen name="nutrition" options={{ title: 'Nutrition', tabBarIcon: icon('restaurant-outline') }} />
     </Tabs>
   );

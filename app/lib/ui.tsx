@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { todayLabel } from './dates';
 import { Card, Text, colors } from './theme';
 import { ratio } from './nutrition';
@@ -37,6 +38,29 @@ export function ProgressBar({ value, target, color }: { value: number; target: n
   return (
     <View style={s.track}>
       <View style={{ width: `${ratio(value, target) * 100}%`, height: '100%', borderRadius: 3, backgroundColor: color }} />
+    </View>
+  );
+}
+
+/** Anneau de calories : consommées sur objectif, avec le nombre restant au centre. */
+export function CalorieRing({ consumed, target, size = 180 }: { consumed: number; target: number | null; size?: number }) {
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const frac = target ? Math.min(Math.max(consumed / target, 0), 1) : 0;
+  const remaining = target != null ? Math.max(Math.round(target - consumed), 0) : null;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.cardAlt} strokeWidth={stroke} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.primary} strokeWidth={stroke} fill="none"
+          strokeLinecap="round" strokeDasharray={`${c} ${c}`} strokeDashoffset={c * (1 - frac)} />
+      </Svg>
+      <Text style={{ fontSize: 34, fontWeight: '800' }}>{remaining ?? '—'}</Text>
+      <Text style={{ color: colors.muted, fontSize: 12.5, fontWeight: '500' }}>
+        {target != null ? 'kcal restantes' : 'objectif en calcul'}
+      </Text>
     </View>
   );
 }
