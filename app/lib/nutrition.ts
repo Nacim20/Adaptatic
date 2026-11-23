@@ -1,5 +1,7 @@
 /** Calculs du journal alimentaire. Fonctions pures, testées (nutrition.test.ts). */
 
+import { Goal } from './types';
+
 export interface Nutrients {
   kcal: number;
   protein_g: number;
@@ -89,6 +91,38 @@ export function defaultMealForHour(hour: number): MealType {
   if (hour < 15) return 'lunch';
   if (hour < 18) return 'snack';
   return 'dinner';
+}
+
+export interface DeficitDisplay {
+  /** Toujours positif : la grandeur à afficher, son sens est donné par `label`. */
+  kcal: number;
+  label: 'kcal de déficit' | 'kcal de surplus';
+  /** Progression vers l'écart visé du jour (calories_kcal vs dépense) ; 0..1, sans objectif en maintien. */
+  fraction: number;
+}
+
+/**
+ * Écart calorique du jour par rapport à la dépense estimée (pas "calories restantes à manger" :
+ * c'est le sens de l'anneau de l'Accueil, volontairement différent de celui de l'onglet Nutrition).
+ * Un déficit cherché mais pas atteint (ou dépassé) bascule honnêtement le libellé en "surplus".
+ */
+export function deficitDisplay(goal: Goal, tdeeKcal: number, calorieTargetKcal: number, consumedKcal: number): DeficitDisplay {
+  const plannedGap = calorieTargetKcal - tdeeKcal; // < 0 en sèche, > 0 en prise, ~0 en maintien
+  const actualGap = consumedKcal - tdeeKcal; // < 0 : en déficit actuellement
+
+  if (goal === 'bulk') {
+    const surplus = Math.round(actualGap);
+    const plannedSurplus = Math.max(Math.round(plannedGap), 1);
+    return { kcal: Math.abs(surplus), label: surplus >= 0 ? 'kcal de surplus' : 'kcal de déficit', fraction: surplus / plannedSurplus };
+  }
+  if (goal === 'cut') {
+    const deficit = Math.round(-actualGap);
+    const plannedDeficit = Math.max(Math.round(-plannedGap), 1);
+    return { kcal: Math.abs(deficit), label: deficit >= 0 ? 'kcal de déficit' : 'kcal de surplus', fraction: deficit / plannedDeficit };
+  }
+  // Maintien : pas d'écart visé à atteindre, juste la direction du jour.
+  const gap = Math.round(actualGap);
+  return { kcal: Math.abs(gap), label: gap <= 0 ? 'kcal de déficit' : 'kcal de surplus', fraction: 0.5 };
 }
 
 /** Aliments récents distincts (le plus récent d'abord), avec la dernière quantité utilisée. */

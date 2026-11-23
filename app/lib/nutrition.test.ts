@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  dayLabel, defaultMealForHour, parseDecimal, ratio, recentDistinct, scaleFood, shiftDate, sumNutrients,
+  dayLabel, defaultMealForHour, deficitDisplay, parseDecimal, ratio, recentDistinct, scaleFood, shiftDate, sumNutrients,
 } from './nutrition';
 
 const cream = { kcal_100: 200, protein_100: 2.5, carbs_100: 3, fat_100: 20 };
@@ -70,6 +70,27 @@ describe('defaultMealForHour', () => {
     expect(defaultMealForHour(16)).toBe('snack');
     expect(defaultMealForHour(20)).toBe('dinner');
     expect(defaultMealForHour(0)).toBe('breakfast');
+  });
+});
+
+describe('deficitDisplay', () => {
+  it('sèche : mangé moins que la dépense = déficit, proportionnel à l’objectif', () => {
+    // dépense 2400, cible 2000 (déficit visé 400), mangé 1800 -> déficit réel 600, 600/400 = 1.5 -> plafonné ailleurs
+    const d = deficitDisplay('cut', 2400, 2000, 1800);
+    expect(d).toEqual({ kcal: 600, label: 'kcal de déficit', fraction: 1.5 });
+  });
+  it('sèche mais surplus du jour : le libellé bascule honnêtement', () => {
+    const d = deficitDisplay('cut', 2400, 2000, 2600);
+    expect(d.label).toBe('kcal de surplus');
+    expect(d.kcal).toBe(200); // -(2600-2400) = -200 -> |−200| = 200
+  });
+  it('prise de masse : mangé plus que la dépense = surplus', () => {
+    const d = deficitDisplay('bulk', 2000, 2300, 2150);
+    expect(d).toEqual({ kcal: 150, label: 'kcal de surplus', fraction: 0.5 });
+  });
+  it('maintien : pas d’objectif, fraction neutre à 0,5', () => {
+    expect(deficitDisplay('maintain', 2000, 2000, 1900)).toEqual({ kcal: 100, label: 'kcal de déficit', fraction: 0.5 });
+    expect(deficitDisplay('maintain', 2000, 2000, 2100)).toEqual({ kcal: 100, label: 'kcal de surplus', fraction: 0.5 });
   });
 });
 

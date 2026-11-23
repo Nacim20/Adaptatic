@@ -4,13 +4,14 @@ import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { localDateISO } from '../../lib/dates';
+import { fetchActiveEvent } from '../../lib/events';
 import { addWater, deleteWater, fetchDay } from '../../lib/journal';
-import { defaultMealForHour, sumNutrients } from '../../lib/nutrition';
+import { defaultMealForHour, deficitDisplay, sumNutrients } from '../../lib/nutrition';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
 import { Card, Screen, Text, colors, styles } from '../../lib/theme';
-import { MEALS, MEAL_LABELS, MealEntry, NutritionTargets, Profile, WaterLog } from '../../lib/types';
-import { CalorieRing, MEAL_ICONS, MEAL_TINTS, ProgressBar, ScreenHeader } from '../../lib/ui';
+import { CalorieEvent, MEALS, MEAL_LABELS, MealEntry, NutritionTargets, Profile, WaterLog } from '../../lib/types';
+import { MEAL_ICONS, MEAL_TINTS, ProgressBar, ProgressRing, ScreenHeader } from '../../lib/ui';
 
 const WATER_STEP_ML = 250;
 
@@ -25,15 +26,17 @@ export default function Dashboard() {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [water, setWater] = useState<WaterLog[]>([]);
   const [waterTarget, setWaterTarget] = useState(2000);
+  const [activeEvent, setActiveEvent] = useState<CalorieEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!uid) return;
-    const [p, t, day] = await Promise.all([
+    const [p, t, day, ev] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('nutrition_targets').select('*').eq('user_id', uid).maybeSingle(),
       fetchDay(uid, today),
+      fetchActiveEvent(uid).catch(() => null),
     ]);
     if (p.error || t.error) {
       setError('Chargement impossible. Réessaie dans un instant.');
@@ -46,6 +49,7 @@ export default function Dashboard() {
     setTargets(t.data as NutritionTargets | null);
     setEntries(day.entries);
     setWater(day.water);
+    setActiveEvent(ev);
     setError(null);
   }, [uid, today]);
 
@@ -88,29 +92,45 @@ export default function Dashboard() {
     { label: 'LIPIDES', value: total.fat_g, target: targets?.fat_g, color: colors.red },
   ];
 
+  const deficit = targets && profile
+    ? deficitDisplay(profile.goal, targets.tdee_kcal, targets.calories_kcal, total.kcal)
+    : null;
+
   return (
     <Screen>
       <ScreenHeader title="Accueil" />
       {error && <Text style={styles.error}>{error}</Text>}
 
       <LinearGradient colors={[colors.cardAlt, colors.card]} style={s.ringCard}>
-        <CalorieRing consumed={total.kcal} target={targets?.calories_kcal ?? null} />
-        <Text style={{ color: colors.muted, fontSize: 13, marginTop: 10 }}>
-          {Math.round(total.kcal)} consommées · {targets ? `${targets.calories_kcal} objectif` : 'calcul en cours'}
-        </Text>
+        {deficit && profile ? (
+          <ProgressRing
+            fraction={deficit.fraction}
+            value={String(deficit.kcal)}
+            unit="kcal"
+            label={deficit.label.toUpperCase()}
+            color={profile.goal === 'bulk' ? colors.orange : colors.teal}
+          />
+        ) : (
+          <ProgressRing fraction={0} value="—" label="CALCUL EN COURS" color={colors.muted} />
+        )}
+
+        <View style={{ flexDirection: 'row', alignSelf: 'stretch', marginTop: 16, gap: 10 }}>
+          <View style={s.statCol}>
+            <Text style={s.statLabel}>CONSOMMÉES</Text>
+            <Text style={[s.statValue, { color: colors.primary }]}>{Math.round(total.kcal)} <Text style={s.statUnit}>kcal</Text></Text>
+            <View style={[s.statBar, { backgroundColor: colors.primary }]} />
+          </View>
+          <View style={s.statCol}>
+            <Text style={s.statLabel}>DÉPENSE ESTIMÉE</Text>
+            <Text style={[s.statValue, { color: colors.orange }]}>{targets ? targets.tdee_kcal : '—'} <Text style={s.statUnit}>kcal</Text></Text>
+            <View style={[s.statBar, { backgroundColor: colors.orange }]} />
+          </View>
+        </View>
+
         {!targets && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, textAlign: 'center' }}>
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10, textAlign: 'center' }}>
             Le service de calcul doit tourner, voir docs/setup.md.
           </Text>
-        )}
-        {targets?.note && (targets.adaptive_offset_kcal !== 0 || targets.event_offset_kcal !== 0) && (
-          <View style={s.notePill}>
-            <Ionicons name="flash" size={13} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600', flex: 1 }}>{targets.note}</Text>
-          </View>
-        )}
-        {targets?.note && targets.adaptive_offset_kcal === 0 && targets.event_offset_kcal === 0 && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10, textAlign: 'center' }}>{targets.note}</Text>
         )}
       </LinearGradient>
 
@@ -128,6 +148,46 @@ export default function Dashboard() {
           </View>
         ))}
       </View>
+
+      <Card>
+        <Text style={{ fontWeight: '700', fontSize: 15, marginBottom: 12 }}>Récapitulatif de la journée</Text>
+
+        <View style={s.summaryRow}>
+          <View style={[s.dot, { backgroundColor: colors.primary }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '600', fontSize: 13.5 }}>
+              Repas : {MEALS.filter((m) => entries.some((e) => e.meal === m)).length} / {MEALS.length} enregistrés
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+              {MEALS.filter((m) => entries.some((e) => e.meal === m)).map((m) => MEAL_LABELS[m]).join(', ') || 'Rien noté pour l\'instant'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={s.summaryRow}>
+          <View style={[s.dot, { backgroundColor: colors.teal }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '600', fontSize: 13.5 }}>
+              Hydratation : {(waterMl / 1000).toFixed(2).replace(/\.?0+$/, '')}L / {(waterTarget / 1000).toFixed(1)}L
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+              {waterMl >= waterTarget ? 'Objectif atteint' : `Il reste ${((waterTarget - waterMl) / 1000).toFixed(2).replace(/\.?0+$/, '')}L`}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[s.summaryRow, { marginBottom: 0 }]}>
+          <View style={[s.dot, { backgroundColor: activeEvent ? colors.primary : colors.border }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '600', fontSize: 13.5 }}>
+              Imprévu : {activeEvent ? 'en cours' : 'aucun'}
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+              {activeEvent ? `Déclaré le ${activeEvent.event_date}, +${activeEvent.excess_kcal} kcal` : "Rien à signaler"}
+            </Text>
+          </View>
+        </View>
+      </Card>
 
       <Card>
         <View style={[styles.row, { alignItems: 'center' }]}>
@@ -190,11 +250,13 @@ const s = {
     borderRadius: 24, padding: 20, marginBottom: 14, alignItems: 'center' as const,
     borderWidth: 1, borderColor: colors.border,
   },
-  notePill: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginTop: 14,
-    backgroundColor: 'rgba(10,132,255,0.12)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.35)',
-    borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12, alignSelf: 'stretch' as const,
-  },
+  statCol: { flex: 1, alignItems: 'center' as const },
+  statLabel: { fontSize: 10.5, color: colors.muted, fontWeight: '700' as const, letterSpacing: 0.4, marginBottom: 4 },
+  statValue: { fontSize: 19, fontWeight: '800' as const },
+  statUnit: { fontSize: 12, fontWeight: '600' as const },
+  statBar: { height: 3, width: '70%' as const, borderRadius: 2, marginTop: 8, opacity: 0.8 },
+  summaryRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 10, marginBottom: 14 },
+  dot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
   macroCard: {
     flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     borderRadius: 16, padding: 11,

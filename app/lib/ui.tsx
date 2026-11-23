@@ -75,6 +75,32 @@ export function CalorieRing({ consumed, target, size = 180 }: { consumed: number
   );
 }
 
+/**
+ * Anneau générique : l'appelant calcule lui-même la fraction remplie et ce qui s'affiche au
+ * centre. Permet à deux écrans de montrer des anneaux avec un sens différent (ex. calories
+ * restantes vs déficit du jour) sans dupliquer le dessin SVG.
+ */
+export function ProgressRing({ fraction, value, unit, label, color = colors.primary, size = 180 }: {
+  fraction: number; value: string; unit?: string; label: string; color?: string; size?: number;
+}) {
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.min(Math.max(fraction, 0), 1);
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.cardAlt} strokeWidth={stroke} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
+          strokeLinecap="round" strokeDasharray={`${c} ${c}`} strokeDashoffset={c * (1 - clamped)} />
+      </Svg>
+      <Text style={{ fontSize: 34, fontWeight: '800' }}>{value}{unit && <Text style={{ fontSize: 16, fontWeight: '700' }}> {unit}</Text>}</Text>
+      <Text style={{ color: colors.muted, fontSize: 12.5, fontWeight: '500', textAlign: 'center', marginTop: 2 }}>{label}</Text>
+    </View>
+  );
+}
+
 /** Puce sélectionnable. */
 export function Chip({ label, selected, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
   return (
