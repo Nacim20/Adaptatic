@@ -7,6 +7,11 @@ import { TrendPoint } from './weightTrend';
 const HEIGHT = 140;
 const PAD = 10;
 
+function toDayNumber(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Date.UTC(y, m - 1, d) / 86_400_000;
+}
+
 /** Poids brut (points) et tendance lissée (trait) sur la période donnée. Largeur = celle du conteneur. */
 export function WeightChart({ points }: { points: TrendPoint[] }) {
   const [width, setWidth] = useState(0);
@@ -20,18 +25,22 @@ export function WeightChart({ points }: { points: TrendPoint[] }) {
   const max = Math.max(...kgs);
   const span = Math.max(max - min, 0.5); // évite une échelle nulle si le poids n'a pas bougé
 
-  const x = (i: number) => PAD + (i / (points.length - 1)) * (width - 2 * PAD);
+  // Proportionnel aux jours écoulés, pas à l'index : un trou de plusieurs semaines sans pesée
+  // doit se voir comme un trou, pas comme des pesées quotidiennes compressées.
+  const firstDay = toDayNumber(points[0].date);
+  const daySpan = Math.max(toDayNumber(points[points.length - 1].date) - firstDay, 1);
+  const x = (date: string) => PAD + ((toDayNumber(date) - firstDay) / daySpan) * (width - 2 * PAD);
   const y = (kg: number) => PAD + (1 - (kg - min) / span) * (HEIGHT - 2 * PAD);
 
-  const trendLine = points.map((p, i) => `${x(i)},${y(p.trend)}`).join(' ');
+  const trendLine = points.map((p) => `${x(p.date)},${y(p.trend)}`).join(' ');
 
   return (
     <View onLayout={onLayout}>
       <Svg width={width} height={HEIGHT}>
         <Line x1={PAD} y1={HEIGHT / 2} x2={width - PAD} y2={HEIGHT / 2} stroke={colors.border} strokeWidth={1} />
         <Polyline points={trendLine} fill="none" stroke={colors.primary} strokeWidth={2.5} />
-        {points.map((p, i) => (
-          <Circle key={p.date} cx={x(i)} cy={y(p.kg)} r={2.5} fill={colors.muted} />
+        {points.map((p) => (
+          <Circle key={p.date} cx={x(p.date)} cy={y(p.kg)} r={2.5} fill={colors.muted} />
         ))}
       </Svg>
     </View>
