@@ -99,7 +99,7 @@ Une recette est un aliment composite : ses valeurs « pour 100 g » sont **calcu
 - Une recette devient un aliment comme un autre (`foods`, `source = 'recipe'`) : réutilise sans rien dupliquer la recherche, l'ajout au journal, les portions (`serving_g` = poids fini ÷ nombre de portions si renseigné).
 - v1 : pas de modification après création (pour corriger un ingrédient, on recrée la recette). `recipe_ingredients` garde la composition pour affichage futur, pas pour un recalcul automatique si un ingrédient change ensuite.
 
-Vérifié : migrations + tests RLS (conteneur Postgres jetable). Non vérifié en conditions réelles contre le vrai Supabase au moment d'écrire ceci.
+Vérifié : migrations + tests RLS (conteneur Postgres jetable) et en conditions réelles contre le vrai Supabase (création avec un ingrédient réel, poids final corrigé manuellement, valeurs calculées exactes, utilisable comme un aliment normal dans le journal).
 
 ## Limites assumées
 

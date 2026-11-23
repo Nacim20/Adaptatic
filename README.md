@@ -43,7 +43,7 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Dates locales (fuseau de l'utilisateur) et nouveau design sombre à 4 onglets | 🚧 en cours (PR `feat/foundations`) |
 | Journal alimentaire : aliments par 100 g, repas, macros, eau, ajout rapide | 🚧 en cours (PR `feat/food-journal`) |
 | Scan de code-barres (Open Food Facts) | ✅ fait, testé en réel (saisie manuelle web + caméra sur téléphone) |
-| Recettes, repas favoris | 🔜 prévu |
+| Recettes (aliment composite, calculé par la base) | ✅ fait, testé en réel contre le vrai Supabase |
 | **Replanification face aux imprévus** : déclaration + lissage sur les jours suivants | ✅ fait, testé en réel contre le vrai Supabase (déclaration, règle "un seul actif", annulation, effet sur `nutrition_targets`) — le déclenchement *automatique* par Supabase (webhook via tunnel public) n'est pas testé sur cette machine, simulé manuellement à la place |
 | Vue "Programme" (plan de la semaine, jour par jour) | ✅ fait, testé en réel contre le vrai Supabase |
 | Graphique de progression (poids brut + tendance) | ✅ fait, testé en réel (visuel + données) |
