@@ -14,8 +14,8 @@ begin
 
   insert into public.exercises (owner_id, name) values (alice, 'Développé couché') returning id into bench_id;
 
-  insert into public.workout_split_days (user_id, weekday, label) values (alice, 4, 'Push');
-  update public.workout_split_days set label = 'Push (haut du corps)' where user_id = alice and weekday = 4;
+  insert into public.workout_split_days (user_id, weekday, template_id) values (alice, 4, null);
+  update public.workout_split_days set template_id = null where user_id = alice and weekday = 4;
 
   insert into public.workout_sessions (user_id, performed_on, label) values (alice, current_date, 'Push') returning id into sess_id;
   insert into public.workout_sets (session_id, exercise_id, exercise_name, weight_kg, reps, set_order)
@@ -30,7 +30,7 @@ begin
     'poids au-delà de 500 kg doit être refusé');
   perform t.fails(format($q$insert into public.workout_sets (session_id, exercise_name, weight_kg, reps) values (%L, 'x', 10, 0)$q$, sess_id),
     '0 répétition doit être refusé');
-  perform t.fails(format($q$insert into public.workout_split_days (user_id, weekday, label) values (%L, 7, 'x')$q$, alice),
+  perform t.fails(format($q$insert into public.workout_split_days (user_id, weekday, template_id) values (%L, 7, null)$q$, alice),
     'jour de semaine hors 0-6 doit être refusé');
 
   -- -------------------------------------------- Exercice supprimé : l'historique reste lisible
