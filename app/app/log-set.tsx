@@ -4,11 +4,11 @@ import { Pressable, View } from 'react-native';
 import { parseDecimal } from '../lib/nutrition';
 import { useSession } from '../lib/session';
 import { Button, Card, Field, Screen, Text, colors, styles } from '../lib/theme';
-import { Exercise, WorkoutTemplate } from '../lib/types';
+import { Exercise } from '../lib/types';
 import { BackHeader } from '../lib/ui';
 import {
   addExerciseToTemplate, addSet, backfillTemplateExerciseId, createExercise, createSession,
-  fetchLastSet, fetchTemplates, fetchTodaySession, searchExercises,
+  fetchLastSet, fetchTodaySession, searchExercises,
 } from '../lib/workout';
 
 export default function LogSet() {
@@ -16,7 +16,7 @@ export default function LogSet() {
   const { session } = useSession();
   const uid = session?.user.id;
   const params = useLocalSearchParams<{
-    date: string; templateId?: string; nextOrder?: string; exerciseId?: string; exerciseName?: string;
+    date: string; templateId?: string; templateName?: string; nextOrder?: string; exerciseId?: string; exerciseName?: string;
   }>();
 
   const [query, setQuery] = useState('');
@@ -29,7 +29,8 @@ export default function LogSet() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [offer, setOffer] = useState<{ exerciseId: string; name: string } | null>(null);
-  const [offerTemplates, setOfferTemplates] = useState<WorkoutTemplate[]>([]);
+  const [offerSets, setOfferSets] = useState('');
+  const [offerReps, setOfferReps] = useState('');
   const searchId = useRef(0);
 
   // Exercice déjà choisi (créneau d'un modèle) : propose les valeurs de la dernière fois.
@@ -76,16 +77,12 @@ export default function LogSet() {
       const order = params.nextOrder ? Number(params.nextOrder) : 1;
       await addSet(sessionId, { id: exerciseId, name: picked.name }, w, r, order);
 
-      // Exercice fait librement (hors créneau de modèle) et tout juste créé : propose de
-      // l'ajouter à une séance pour qu'il revienne tout seul les prochaines fois.
-      if (!params.exerciseName && wasNew) {
-        const tpls = await fetchTemplates(uid);
-        if (tpls.length > 0) {
-          setOfferTemplates(tpls);
-          setOffer({ exerciseId, name: picked.name });
-          setBusy(false);
-          return;
-        }
+      // Exercice fait librement (hors créneau) et tout juste créé, pendant une séance qui a
+      // un modèle du jour : propose de l'ajouter officiellement pour les prochaines fois.
+      if (!params.exerciseName && wasNew && params.templateId) {
+        setOffer({ exerciseId, name: picked.name });
+        setBusy(false);
+        return;
       }
       router.back();
     } catch (e) {
@@ -94,10 +91,12 @@ export default function LogSet() {
     }
   }
 
-  async function addToTemplate(templateId: string) {
-    if (!offer) return;
+  async function confirmAddToSplit() {
+    if (!offer || !params.templateId) return;
+    const sets = offerSets.trim() ? Math.round(Number(offerSets)) : null;
+    const reps = offerReps.trim() ? Math.round(Number(offerReps)) : null;
     try {
-      await addExerciseToTemplate(templateId, { id: offer.exerciseId, name: offer.name });
+      await addExerciseToTemplate(params.templateId, { id: offer.exerciseId, name: offer.name }, { sets, reps });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ajout impossible');
       return;
@@ -113,15 +112,14 @@ export default function LogSet() {
         <Card>
           <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 4 }}>Série enregistrée !</Text>
           <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 12 }}>
-            Ajouter {offer.name} à une de tes séances pour qu'il revienne automatiquement ?
+            Ajouter {offer.name} officiellement à {params.templateName ?? 'ta séance'} pour les prochaines fois ?
           </Text>
-          {offerTemplates.map((t) => (
-            <Pressable key={t.id} onPress={() => addToTemplate(t.id)}
-              style={{ backgroundColor: colors.cardAlt, borderRadius: 12, padding: 12, marginBottom: 6 }}>
-              <Text style={{ fontWeight: '600' }}>{t.name}</Text>
-            </Pressable>
-          ))}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1 }}><Field label="Séries (optionnel)" value={offerSets} onChangeText={setOfferSets} keyboardType="numeric" /></View>
+            <View style={{ flex: 1 }}><Field label="Répétitions (optionnel)" value={offerReps} onChangeText={setOfferReps} keyboardType="numeric" /></View>
+          </View>
           {error && <Text style={styles.error}>{error}</Text>}
+          <Button title="Oui, ajouter" onPress={confirmAddToSplit} />
           <Button secondary title="Non merci" onPress={() => router.back()} />
         </Card>
       ) : picked ? (

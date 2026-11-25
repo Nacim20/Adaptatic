@@ -80,7 +80,13 @@ export default function Programme() {
   }
 
   function logFreeSet() {
-    router.push({ pathname: '/log-set', params: { date: today, templateId: todayTemplateId ?? undefined, nextOrder: String(todaySets.length + 1) } });
+    router.push({
+      pathname: '/log-set',
+      params: {
+        date: today, templateId: todayTemplateId ?? undefined, templateName: todayTemplate?.name,
+        nextOrder: String(todaySets.length + 1),
+      },
+    });
   }
 
   return (

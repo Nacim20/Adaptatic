@@ -87,14 +87,19 @@ export async function createTemplate(uid: string, t: NewTemplate): Promise<Worko
 }
 
 /** Exercice fait librement (hors modèle) qu'on décide d'ajouter à une séance pour la prochaine fois. */
-export async function addExerciseToTemplate(templateId: string, exercise: { id: string; name: string }) {
+export async function addExerciseToTemplate(
+  templateId: string, exercise: { id: string; name: string },
+  target?: { sets: number | null; reps: number | null },
+) {
   const existing = check(
     await supabase.from('workout_template_exercises').select('position').eq('template_id', templateId),
     'Chargement du modèle',
   ) as { position: number }[];
   const position = existing.reduce((max, r) => Math.max(max, r.position), 0) + 1;
-  const res = await supabase.from('workout_template_exercises')
-    .insert({ template_id: templateId, exercise_id: exercise.id, exercise_name: exercise.name, position });
+  const res = await supabase.from('workout_template_exercises').insert({
+    template_id: templateId, exercise_id: exercise.id, exercise_name: exercise.name, position,
+    target_sets: target?.sets ?? null, target_reps: target?.reps ?? null,
+  });
   if (res.error) throw new Error(`Ajout au modèle impossible : ${res.error.message}`);
 }
 
