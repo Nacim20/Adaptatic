@@ -48,6 +48,7 @@ Le calcul est **événementiel** : une pesée ou un changement de profil déclen
 | Vue "Programme" (plan de la semaine, jour par jour) | ✅ fait, testé en réel contre le vrai Supabase |
 | Graphique de progression (poids brut + tendance) | ✅ fait, testé en réel (visuel + données) |
 | Rappels locaux "programme du jour" (2 max/jour) | ✅ fait, testé sur iPhone réel (Expo Go) |
+| Suivi d'entraînement (modèles de séance, split, log de séries, progression par exercice) | ✅ fait, testé en réel contre le vrai Supabase et sur iPhone (Expo Go) — aucune suggestion d'exercices/charges, tout vient de l'utilisateur |
 
 ### La replanification face aux imprévus
 

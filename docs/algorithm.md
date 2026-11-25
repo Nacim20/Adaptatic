@@ -112,6 +112,18 @@ Deux rappels locaux par jour au maximum (13 h et 20 h, heure de l'appareil), jam
 
 Vérifié sur iPhone réel (Expo Go) : la permission est demandée, exactement un rappel programmé (13h déjà passé, 20h restant), contenu correct, pas de doublon après plusieurs rechargements de l'écran. L'affichage réel à l'heure prévue n'a pas été observé en direct (programmé ~1h20 à l'avance) : la confirmation que l'heure cible a bien été acceptée par le système d'exploitation (trigger natif iOS) est considérée comme une preuve suffisante.
 
+## 12. Suivi d'entraînement
+
+Aucune logique de programmation sportive n'est calculée ou suggérée par l'app : pas de choix d'exercices, pas de progression de charge, pas de cible RPE. Tout vient de l'utilisateur, pour la même raison que l'absence de préréglages sur l'Imprévu (§9) — ce serait inventer une recommandation sans source fiable.
+
+- **Modèle de séance** (`workout_templates`/`workout_template_exercises`) : une liste d'exercices, dans un ordre, créée une fois. L'objectif séries×répétitions par exercice est **optionnel et entré par l'utilisateur lui-même** (jamais calculé ni suggéré) — juste un rappel affiché, pas une contrainte imposée.
+- **Split** (`workout_split_days`) : assigne un modèle à chaque jour de la semaine (ou aucun = repos). Purement déclaratif, aucune règle de répartition musculaire vérifiée par l'app.
+- **Séance et séries** (`workout_sessions`/`workout_sets`) : une séance par jour calendaire, des séries (poids × répétitions) qui s'y rattachent. `exercise_name` est copié sur la série (comme `food_name` sur une entrée de repas, §7) : l'historique reste lisible même si l'exercice ou le modèle qui le référençait est supprimé.
+- **Progression** : le graphique de Progrès trace la **meilleure série (poids) par jour** pour un exercice choisi, sur un axe proportionnel au temps écoulé (comme le poids, §1) — pas un 1RM estimé, pas de comparaison à une norme, juste les propres données de l'utilisateur. Un volume hebdomadaire (poids × répétitions sommé par jour de semaine) avait été envisagé puis écarté : il confond le type de séance du jour (jambes vs bras) avec le progrès réel sur un exercice donné.
+- Un exercice fait librement (hors créneau de modèle) peut être ajouté au modèle du jour après coup, avec un objectif séries/reps saisi à ce moment — pour qu'il revienne automatiquement les prochaines fois, sans repasser par la création de modèle.
+
+Vérifié : migrations + tests RLS (conteneur Postgres jetable) et en conditions réelles contre le vrai Supabase et un iPhone (Expo Go) : création de modèle, assignation au split, log d'une série avec pré-remplissage depuis la dernière fois, graphique de progression par exercice sur plusieurs jours.
+
 ## Limites assumées
 
 - Les estimations dépendent de la régularité des pesées ; peu de données = pas d'ajustement (et l'app le dit).
