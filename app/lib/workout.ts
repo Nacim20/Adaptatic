@@ -30,10 +30,18 @@ export async function searchExercises(uid: string, q: string): Promise<Exercise[
 }
 
 /** Idempotent : un exercice "créé à la volée" plusieurs fois (modèle sans exercise_id, texte
- * libre ressaisi) doit renvoyer l'exercice existant plutôt que de violer l'unicité (owner_id, name). */
+ * libre ressaisi) doit renvoyer l'exercice existant plutôt que de violer l'unicité (owner_id, name).
+ * Pas d'upsert : la table n'autorise que select/insert/delete (pas update) côté RLS. */
 export async function createExercise(uid: string, name: string): Promise<Exercise> {
-  const res = await supabase.from('exercises')
-    .upsert({ owner_id: uid, name }, { onConflict: 'owner_id,name' }).select('*').single();
+  const existing = await supabase.from('exercises').select('*').eq('owner_id', uid).eq('name', name).maybeSingle();
+  if (existing.data) return existing.data as Exercise;
+
+  const res = await supabase.from('exercises').insert({ owner_id: uid, name }).select('*').single();
+  if (res.error?.code === '23505') {
+    // Course avec une autre requête qui vient juste de créer le même exercice.
+    const retry = await supabase.from('exercises').select('*').eq('owner_id', uid).eq('name', name).single();
+    return check(retry, 'Création de l\'exercice') as Exercise;
+  }
   return check(res, 'Création de l\'exercice') as Exercise;
 }
 
