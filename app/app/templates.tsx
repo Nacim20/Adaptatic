@@ -1,20 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { searchExercises } from '../lib/workout';
 import { useSession } from '../lib/session';
 import { Button, Card, Field, Screen, Text, colors, styles } from '../lib/theme';
-import { Exercise, WorkoutTemplate } from '../lib/types';
+import { Exercise, WorkoutTemplate, WorkoutTemplateExercise } from '../lib/types';
 import { BackHeader } from '../lib/ui';
-import { createTemplate, deleteTemplate, fetchTemplateExercises, fetchTemplates } from '../lib/workout';
+import {
+  createTemplate, deleteTemplate, fetchTemplateExercises, fetchTemplates,
+  searchExercises, updateTemplateExerciseTarget,
+} from '../lib/workout';
 
-interface DraftExercise { exerciseId: string | null; name: string }
+interface DraftExercise { exerciseId: string | null; name: string; targetSets: string; targetReps: string }
+
+function parseTarget(s: string): number | null {
+  const n = Math.round(Number(s));
+  return s.trim() && Number.isFinite(n) ? n : null;
+}
 
 export default function Templates() {
   const { session } = useSession();
   const uid = session?.user.id;
 
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
-  const [expanded, setExpanded] = useState<Record<string, Exercise[] | undefined>>({});
+  const [expanded, setExpanded] = useState<Record<string, WorkoutTemplateExercise[] | undefined>>({});
+  const [editing, setEditing] = useState<string | null>(null); // id d'un WorkoutTemplateExercise
+  const [editSets, setEditSets] = useState('');
+  const [editReps, setEditReps] = useState('');
   const [creating, setCreating] = useState(false);
 
   const [name, setName] = useState('');
@@ -43,11 +53,29 @@ export default function Templates() {
   async function toggleExpand(t: WorkoutTemplate) {
     if (expanded[t.id]) { setExpanded((p) => ({ ...p, [t.id]: undefined })); return; }
     const exos = await fetchTemplateExercises(t.id);
-    setExpanded((p) => ({ ...p, [t.id]: exos.map((e) => ({ id: e.exercise_id ?? '', owner_id: '', name: e.exercise_name })) }));
+    setExpanded((p) => ({ ...p, [t.id]: exos }));
+  }
+
+  function startEdit(te: WorkoutTemplateExercise) {
+    setEditing(te.id);
+    setEditSets(te.target_sets != null ? String(te.target_sets) : '');
+    setEditReps(te.target_reps != null ? String(te.target_reps) : '');
+  }
+
+  async function saveEdit(templateId: string) {
+    if (!editing) return;
+    try {
+      await updateTemplateExerciseTarget(editing, parseTarget(editSets), parseTarget(editReps));
+      const exos = await fetchTemplateExercises(templateId);
+      setExpanded((p) => ({ ...p, [templateId]: exos }));
+      setEditing(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Mise à jour impossible');
+    }
   }
 
   function addToDraft(name: string, exerciseId: string | null) {
-    setDraft((prev) => [...prev, { exerciseId, name }]);
+    setDraft((prev) => [...prev, { exerciseId, name, targetSets: '', targetReps: '' }]);
     setQuery('');
     setResults([]);
   }
@@ -59,7 +87,13 @@ export default function Templates() {
     setBusy(true);
     setError(null);
     try {
-      await createTemplate(uid, { name: name.trim(), exercises: draft.map((d) => ({ exerciseId: d.exerciseId, name: d.name })) });
+      await createTemplate(uid, {
+        name: name.trim(),
+        exercises: draft.map((d) => ({
+          exerciseId: d.exerciseId, name: d.name,
+          targetSets: parseTarget(d.targetSets), targetReps: parseTarget(d.targetReps),
+        })),
+      });
       setName(''); setDraft([]); setCreating(false);
       load();
     } catch (e) {
@@ -86,11 +120,23 @@ export default function Templates() {
           <Field label="Nom de la séance (ex. Push Day)" value={name} onChangeText={setName} />
 
           {draft.map((d, i) => (
-            <View key={i} style={[styles.row, { alignItems: 'center', paddingVertical: 6 }]}>
-              <Text style={{ flex: 1 }}>{i + 1}. {d.name}</Text>
-              <Pressable onPress={() => setDraft((prev) => prev.filter((_, idx) => idx !== i))}>
-                <Text style={{ color: colors.muted }}>✕</Text>
-              </Pressable>
+            <View key={i} style={{ paddingVertical: 6, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: colors.border }}>
+              <View style={[styles.row, { alignItems: 'center' }]}>
+                <Text style={{ flex: 1 }}>{i + 1}. {d.name}</Text>
+                <Pressable onPress={() => setDraft((prev) => prev.filter((_, idx) => idx !== i))}>
+                  <Text style={{ color: colors.muted }}>✕</Text>
+                </Pressable>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <Field label="Séries (optionnel)" value={d.targetSets} keyboardType="numeric"
+                    onChangeText={(v) => setDraft((prev) => prev.map((x, idx) => idx === i ? { ...x, targetSets: v } : x))} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field label="Répétitions (optionnel)" value={d.targetReps} keyboardType="numeric"
+                    onChangeText={(v) => setDraft((prev) => prev.map((x, idx) => idx === i ? { ...x, targetReps: v } : x))} />
+                </View>
+              </View>
             </View>
           ))}
 
@@ -118,7 +164,8 @@ export default function Templates() {
     <Screen>
       <BackHeader title="Tes séances" />
       <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 14 }}>
-        Crée tes séances types (liste d'exercices) à l'avance, tu n'as plus qu'à les sélectionner le jour venu.
+        Crée tes séances types (liste d'exercices, objectif séries/répétitions optionnel) à l'avance,
+        tu n'as plus qu'à les sélectionner le jour venu.
       </Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -132,8 +179,25 @@ export default function Templates() {
           </Pressable>
           {expanded[t.id] && (
             <View style={{ marginTop: 8 }}>
-              {expanded[t.id]!.map((e, i) => (
-                <Text key={i} style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>{i + 1}. {e.name}</Text>
+              {expanded[t.id]!.map((te, i) => (
+                <View key={te.id}>
+                  <Pressable onPress={() => (editing === te.id ? setEditing(null) : startEdit(te))}
+                    style={[styles.row, { paddingVertical: 4 }]}>
+                    <Text style={{ color: colors.muted, fontSize: 13 }}>{i + 1}. {te.exercise_name}</Text>
+                    <Text style={{ color: colors.primary, fontSize: 12.5, fontWeight: '600' }}>
+                      {te.target_sets && te.target_reps ? `${te.target_sets}×${te.target_reps}` : 'Définir'}
+                    </Text>
+                  </Pressable>
+                  {editing === te.id && (
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginBottom: 8 }}>
+                      <View style={{ flex: 1 }}><Field label="Séries" value={editSets} onChangeText={setEditSets} keyboardType="numeric" /></View>
+                      <View style={{ flex: 1 }}><Field label="Répétitions" value={editReps} onChangeText={setEditReps} keyboardType="numeric" /></View>
+                      <Pressable onPress={() => saveEdit(t.id)} style={{ paddingBottom: 14 }}>
+                        <Text style={{ color: colors.primary, fontWeight: '700' }}>OK</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
               ))}
             </View>
           )}

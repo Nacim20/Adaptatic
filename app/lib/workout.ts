@@ -68,7 +68,7 @@ export async function fetchTemplateExercises(templateId: string): Promise<Workou
 
 export interface NewTemplate {
   name: string;
-  exercises: { exerciseId: string | null; name: string }[];
+  exercises: { exerciseId: string | null; name: string; targetSets: number | null; targetReps: number | null }[];
 }
 
 export async function createTemplate(uid: string, t: NewTemplate): Promise<WorkoutTemplate> {
@@ -79,10 +79,29 @@ export async function createTemplate(uid: string, t: NewTemplate): Promise<Worko
 
   const rows = t.exercises.map((e, i) => ({
     template_id: template.id, exercise_id: e.exerciseId, exercise_name: e.name, position: i + 1,
+    target_sets: e.targetSets, target_reps: e.targetReps,
   }));
   const res = await supabase.from('workout_template_exercises').insert(rows);
   if (res.error) throw new Error(`Enregistrement des exercices du modèle : ${res.error.message}`);
   return template;
+}
+
+/** Exercice fait librement (hors modèle) qu'on décide d'ajouter à une séance pour la prochaine fois. */
+export async function addExerciseToTemplate(templateId: string, exercise: { id: string; name: string }) {
+  const existing = check(
+    await supabase.from('workout_template_exercises').select('position').eq('template_id', templateId),
+    'Chargement du modèle',
+  ) as { position: number }[];
+  const position = existing.reduce((max, r) => Math.max(max, r.position), 0) + 1;
+  const res = await supabase.from('workout_template_exercises')
+    .insert({ template_id: templateId, exercise_id: exercise.id, exercise_name: exercise.name, position });
+  if (res.error) throw new Error(`Ajout au modèle impossible : ${res.error.message}`);
+}
+
+export async function updateTemplateExerciseTarget(id: string, targetSets: number | null, targetReps: number | null) {
+  const res = await supabase.from('workout_template_exercises')
+    .update({ target_sets: targetSets, target_reps: targetReps }).eq('id', id);
+  if (res.error) throw new Error(`Mise à jour de l'objectif impossible : ${res.error.message}`);
 }
 
 /** Un créneau créé avec exercise_id = null (texte libre) se relie au vrai exercice dès sa création,

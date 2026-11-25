@@ -98,17 +98,16 @@ export default function Programme() {
           <View style={{ marginBottom: 12 }}>
             {todayExercises.map((ex, i) => {
               const done = ex.exercise_id ? loggedByExercise[ex.exercise_id] : undefined;
+              const target = ex.target_sets && ex.target_reps ? `${ex.target_sets}×${ex.target_reps}` : null;
               return (
                 <Pressable key={ex.id} onPress={() => logSlot(ex, i + 1)} style={[styles.row, { alignItems: 'center', paddingVertical: 8 }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13.5, fontWeight: '600' }}>{i + 1}. {ex.exercise_name}</Text>
-                    {done ? (
-                      <Text style={{ color: colors.green, fontSize: 12, marginTop: 1 }}>
-                        {done.map((s) => `${s.weight_kg}kg×${s.reps}`).join(', ')}
-                      </Text>
-                    ) : (
-                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>Pas encore fait</Text>
-                    )}
+                    <Text style={{ fontSize: 13.5, fontWeight: '600' }}>
+                      {i + 1}. {ex.exercise_name}{target ? <Text style={{ color: colors.muted, fontWeight: '600' }}> · {target}</Text> : null}
+                    </Text>
+                    <Text style={{ color: done ? colors.green : colors.muted, fontSize: 12, marginTop: 1 }}>
+                      {done ? `${done.length} série${done.length > 1 ? 's' : ''} faite${done.length > 1 ? 's' : ''}` : 'Pas encore fait'}
+                    </Text>
                   </View>
                   <Ionicons name={done ? 'checkmark-circle' : 'add-circle-outline'} size={22} color={done ? colors.green : colors.primary} />
                 </Pressable>
@@ -122,13 +121,6 @@ export default function Programme() {
             </Text>
           )
         )}
-
-        {todaySets.filter((s) => !s.exercise_id || !todayExercises.some((e) => e.exercise_id === s.exercise_id)).map((s) => (
-          <View key={s.id} style={[styles.row, { paddingVertical: 4 }]}>
-            <Text style={{ fontSize: 13.5 }}>{s.exercise_name}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>{s.weight_kg} kg × {s.reps}</Text>
-          </View>
-        ))}
 
         <Button secondary={todayExercises.length > 0} title="Ajouter un autre exercice" onPress={logFreeSet} />
       </Card>

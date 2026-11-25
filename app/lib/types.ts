@@ -126,19 +126,22 @@ export interface Exercise {
   name: string;
 }
 
-/** Séance type créée à l'avance : un nom + une liste d'exercices (pas d'objectif imposé). */
+/** Séance type créée à l'avance : un nom + une liste d'exercices. */
 export interface WorkoutTemplate {
   id: string;
   owner_id: string;
   name: string;
 }
 
+/** target_sets/target_reps : objectif fixé par l'utilisateur lui-même, jamais suggéré. */
 export interface WorkoutTemplateExercise {
   id: string;
   template_id: string;
   exercise_id: string | null;
   exercise_name: string;
   position: number;
+  target_sets: number | null;
+  target_reps: number | null;
 }
 
 /** Modèle prévu pour un jour de la semaine (0 = dimanche … 6 = samedi), défini par l'utilisateur. */
