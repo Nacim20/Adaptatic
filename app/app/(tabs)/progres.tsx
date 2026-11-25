@@ -1,14 +1,16 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
-import { WeightChart } from '../../lib/chart';
+import { Pressable, View } from 'react-native';
+import { ExerciseProgressChart, WeightChart } from '../../lib/chart';
 import { localDateISO } from '../../lib/dates';
 import { useSession } from '../../lib/session';
 import { supabase } from '../../lib/supabase';
 import { Button, Card, Field, Screen, Text, colors, styles } from '../../lib/theme';
-import { NutritionTargets, WeightLog } from '../../lib/types';
+import { Exercise, NutritionTargets, WeightLog } from '../../lib/types';
 import { ScreenHeader } from '../../lib/ui';
 import { trendSeries } from '../../lib/weightTrend';
+import { fetchAllExercises, fetchExerciseHistory } from '../../lib/workout';
+import { topSetWeight } from '../../lib/workoutStats';
 
 export default function Progres() {
   const { session } = useSession();
@@ -20,20 +22,37 @@ export default function Progres() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [selected, setSelected] = useState<Exercise | null>(null);
+  const [points, setPoints] = useState<{ date: string; topWeight: number }[]>([]);
+
   const load = useCallback(async () => {
     if (!uid) return;
-    const [t, w] = await Promise.all([
+    const [t, w, ex] = await Promise.all([
       supabase.from('nutrition_targets').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('weight_logs').select('id,weight_kg,logged_on').eq('user_id', uid)
         .order('logged_on', { ascending: false }).limit(90),
+      fetchAllExercises(uid),
     ]);
     if (t.error || w.error) return setError('Chargement impossible. Réessaie dans un instant.');
     setTargets(t.data as NutritionTargets | null);
     setWeights((w.data ?? []) as WeightLog[]);
+    setExercises(ex);
     setError(null);
   }, [uid]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  async function selectExercise(ex: Exercise) {
+    setSelected(ex);
+    if (!uid) return;
+    const history = await fetchExerciseHistory(uid, ex.id);
+    setPoints(
+      history
+        .map((h) => ({ date: h.performedOn, topWeight: topSetWeight(h.sets) }))
+        .filter((p): p is { date: string; topWeight: number } => p.topWeight !== null),
+    );
+  }
 
   async function addWeight() {
     const kg = Number(input.replace(',', '.'));
@@ -70,6 +89,32 @@ export default function Progres() {
         )}
       </Card>
 
+      {exercises.length > 0 && (
+        <Card>
+          <Text style={styles.label}>Progrès à l'entraînement</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, marginBottom: 10 }}>
+            {exercises.map((ex) => (
+              <Pressable key={ex.id} onPress={() => selectExercise(ex)}
+                style={[s.chip, selected?.id === ex.id && s.chipActive]}>
+                <Text style={{ fontSize: 12.5, fontWeight: '600' }}>{ex.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {!selected && <Text style={{ color: colors.muted, fontSize: 13 }}>Choisis un exercice pour voir son évolution.</Text>}
+          {selected && points.length < 2 && (
+            <Text style={{ color: colors.muted, fontSize: 13 }}>Pas encore assez de séances enregistrées pour {selected.name}.</Text>
+          )}
+          {selected && points.length >= 2 && (
+            <>
+              <Text style={{ fontSize: 22, fontWeight: '800', marginBottom: 4 }}>
+                {points[points.length - 1].topWeight} <Text style={{ fontSize: 13, color: colors.muted, fontWeight: '600' }}>kg (meilleure série la plus récente)</Text>
+              </Text>
+              <ExerciseProgressChart points={points} />
+            </>
+          )}
+        </Card>
+      )}
+
       {targets?.note && (
         <Card>
           <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{targets.note}</Text>
@@ -89,3 +134,11 @@ export default function Progres() {
     </Screen>
   );
 }
+
+const s = {
+  chip: {
+    paddingVertical: 7, paddingHorizontal: 12, borderRadius: 14,
+    backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
+  },
+  chipActive: { borderColor: colors.primary, backgroundColor: 'rgba(10,132,255,0.14)' },
+};

@@ -118,3 +118,51 @@ export interface WaterLog {
   amount_ml: number;
   created_at: string;
 }
+
+/** Exercice du catalogue personnel de l'utilisateur (juste un nom, pas de données "scientifiques"). */
+export interface Exercise {
+  id: string;
+  owner_id: string;
+  name: string;
+}
+
+/** Séance type créée à l'avance : un nom + une liste d'exercices (pas d'objectif imposé). */
+export interface WorkoutTemplate {
+  id: string;
+  owner_id: string;
+  name: string;
+}
+
+export interface WorkoutTemplateExercise {
+  id: string;
+  template_id: string;
+  exercise_id: string | null;
+  exercise_name: string;
+  position: number;
+}
+
+/** Modèle prévu pour un jour de la semaine (0 = dimanche … 6 = samedi), défini par l'utilisateur. */
+export interface SplitDay {
+  user_id: string;
+  weekday: number;
+  template_id: string | null;
+}
+
+export interface WorkoutSession {
+  id: string;
+  user_id: string;
+  performed_on: string;
+  template_id: string | null;
+  label: string | null;
+}
+
+/** Copie du nom de l'exercice (résiste à sa suppression), comme food_name sur une entrée de repas. */
+export interface WorkoutSet {
+  id: string;
+  session_id: string;
+  exercise_id: string | null;
+  exercise_name: string;
+  weight_kg: number;
+  reps: number;
+  set_order: number;
+}
