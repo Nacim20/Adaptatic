@@ -101,17 +101,20 @@ export default function Progres() {
             ))}
           </View>
           {!selected && <Text style={{ color: colors.muted, fontSize: 13 }}>Choisis un exercice pour voir son évolution.</Text>}
-          {selected && points.length < 2 && (
-            <Text style={{ color: colors.muted, fontSize: 13 }}>Pas encore assez de séances enregistrées pour {selected.name}.</Text>
+          {selected && points.length > 0 && (
+            <Text style={{ fontSize: 22, fontWeight: '800', marginBottom: 4 }}>
+              {points[points.length - 1].topWeight} <Text style={{ fontSize: 13, color: colors.muted, fontWeight: '600' }}>kg (meilleure série la plus récente)</Text>
+            </Text>
           )}
-          {selected && points.length >= 2 && (
-            <>
-              <Text style={{ fontSize: 22, fontWeight: '800', marginBottom: 4 }}>
-                {points[points.length - 1].topWeight} <Text style={{ fontSize: 13, color: colors.muted, fontWeight: '600' }}>kg (meilleure série la plus récente)</Text>
-              </Text>
-              <ExerciseProgressChart points={points} />
-            </>
+          {selected && points.length === 0 && (
+            <Text style={{ color: colors.muted, fontSize: 13 }}>Aucune série enregistrée pour {selected.name}.</Text>
           )}
+          {selected && points.length === 1 && (
+            <Text style={{ color: colors.muted, fontSize: 13 }}>
+              Une seule journée enregistrée pour l'instant — la courbe apparaîtra dès que tu auras refait {selected.name} un autre jour.
+            </Text>
+          )}
+          {selected && points.length >= 2 && <ExerciseProgressChart points={points} />}
         </Card>
       )}
 
