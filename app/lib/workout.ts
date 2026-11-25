@@ -29,8 +29,11 @@ export async function searchExercises(uid: string, q: string): Promise<Exercise[
   return check(res, 'Recherche d\'exercices') as Exercise[];
 }
 
+/** Idempotent : un exercice "créé à la volée" plusieurs fois (modèle sans exercise_id, texte
+ * libre ressaisi) doit renvoyer l'exercice existant plutôt que de violer l'unicité (owner_id, name). */
 export async function createExercise(uid: string, name: string): Promise<Exercise> {
-  const res = await supabase.from('exercises').insert({ owner_id: uid, name }).select('*').single();
+  const res = await supabase.from('exercises')
+    .upsert({ owner_id: uid, name }, { onConflict: 'owner_id,name' }).select('*').single();
   return check(res, 'Création de l\'exercice') as Exercise;
 }
 
@@ -72,6 +75,15 @@ export async function createTemplate(uid: string, t: NewTemplate): Promise<Worko
   const res = await supabase.from('workout_template_exercises').insert(rows);
   if (res.error) throw new Error(`Enregistrement des exercices du modèle : ${res.error.message}`);
   return template;
+}
+
+/** Un créneau créé avec exercise_id = null (texte libre) se relie au vrai exercice dès sa création,
+ * sinon il ne serait jamais reconnu comme "fait" ni pré-rempli les fois suivantes. */
+export async function backfillTemplateExerciseId(templateId: string, exerciseName: string, exerciseId: string) {
+  const res = await supabase.from('workout_template_exercises')
+    .update({ exercise_id: exerciseId })
+    .eq('template_id', templateId).eq('exercise_name', exerciseName).is('exercise_id', null);
+  if (res.error) throw new Error(`Mise à jour du modèle impossible : ${res.error.message}`);
 }
 
 export async function deleteTemplate(id: string) {

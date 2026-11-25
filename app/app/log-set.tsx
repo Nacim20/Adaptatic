@@ -6,7 +6,7 @@ import { useSession } from '../lib/session';
 import { Button, Card, Field, Screen, Text, colors, styles } from '../lib/theme';
 import { Exercise } from '../lib/types';
 import { BackHeader } from '../lib/ui';
-import { addSet, createExercise, createSession, fetchLastSet, fetchTodaySession, searchExercises } from '../lib/workout';
+import { addSet, backfillTemplateExerciseId, createExercise, createSession, fetchLastSet, fetchTodaySession, searchExercises } from '../lib/workout';
 
 export default function LogSet() {
   const router = useRouter();
@@ -60,6 +60,7 @@ export default function LogSet() {
       if (!exerciseId) {
         const created = await createExercise(uid, picked.name);
         exerciseId = created.id;
+        if (params.templateId) await backfillTemplateExerciseId(params.templateId, picked.name, exerciseId);
       }
       let sessionId = (await fetchTodaySession(uid, params.date))?.id;
       if (!sessionId) {
