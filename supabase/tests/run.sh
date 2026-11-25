@@ -17,4 +17,5 @@ run -f tests/calorie_events_test.sql
 run -f tests/recipes_test.sql
 run -f tests/workout_test.sql
 run -f tests/workout_templates_test.sql
+run -f tests/workout_template_targets_test.sql
 echo "OK : migrations et tests de sécurité passés"
